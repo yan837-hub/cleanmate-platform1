@@ -5,9 +5,7 @@
     <el-descriptions v-if="order" :column="2" border>
       <el-descriptions-item label="订单号">{{ order.orderNo }}</el-descriptions-item>
       <el-descriptions-item label="状态">
-        <el-tag :type="order.status === 7 && order.complaintStatus === 3 ? 'success' : statusType(order.status)">
-          {{ order.status === 7 && order.complaintStatus === 3 ? '售后已结案' : order.statusDesc }}
-        </el-tag>
+        <el-tag :type="orderStatusType(order)">{{ orderStatusText(order) }}</el-tag>
       </el-descriptions-item>
       <el-descriptions-item label="服务类型">{{ order.serviceTypeName }}</el-descriptions-item>
       <el-descriptions-item label="预约时间">{{ formatTime(order.appointTime) }}</el-descriptions-item>
@@ -185,6 +183,8 @@ import { useRoute } from 'vue-router'
 import { getCleanerOrderDetail, checkin, reportComplete, uploadPhoto, getOrderPhotos, acceptOrder, rejectOrder, cleanerCancelOrder, getRouteHint, getCleanerReschedules, handleReschedule } from '@/api/order'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
+import { formatTime } from '@/utils/time'
+import { orderStatusText, orderStatusType } from '@/utils/orderStatus'
 
 const route = useRoute()
 const orderId = route.params.id
@@ -275,8 +275,8 @@ async function doCancel() {
     await cleanerCancelOrder(orderId, '')
     ElMessage.success('已取消，订单已退回待派单池')
     await loadOrder()
-  } catch (e) {
-    ElMessage.error(e?.message || '取消失败')
+  } catch {
+    // 错误已由 request 拦截器统一弹出，此处不重复提示
   } finally {
     actionLoading.value = false
   }
@@ -434,12 +434,6 @@ async function doRejectReschedule() {
   }
 }
 
-function formatTime(t) {
-  return t ? t.replace('T', ' ').substring(0, 16) : '-'
-}
-function statusType(s) {
-  return { 3: '', 4: 'primary', 5: 'warning', 6: 'success', 7: 'danger', 8: 'info', 9: 'warning' }[s] ?? 'info'
-}
 const RESULT_MAP = {
   1: { text: '全额退款', type: 'danger' },
   2: { text: '投诉驳回', type: 'info' },

@@ -8,7 +8,7 @@
     </template>
 
     <div v-loading="loading">
-      <el-empty v-if="!loading && list.length === 0" description="暂无消息" />
+      <el-empty v-if="!loading && list.length === 0" description="暂无消息" :image-size="80" />
 
       <div v-for="item in list" :key="item.id" class="notif-item" :class="{ unread: item.isRead === 0 }" @click="doRead(item)">
         <div class="notif-dot" v-if="item.isRead === 0"></div>

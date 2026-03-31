@@ -101,6 +101,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, ShoppingBag, Clock, Timer, Location, ChatDotRound } from '@element-plus/icons-vue'
 import { getGrabPool, grabOrder } from '@/api/order'
+import { formatTime } from '@/utils/time'
 
 const list = ref([])
 const total = ref(0)
@@ -142,10 +143,6 @@ async function handleGrab(order) {
   }
 }
 
-function formatTime(t) {
-  if (!t) return '-'
-  return t.replace('T', ' ').slice(0, 16)
-}
 
 onMounted(() => {
   loadPool()

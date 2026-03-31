@@ -350,13 +350,13 @@ async function loadOverview() {
 /* 概览卡片 */
 .stat-card {
   background: #fff;
-  border-radius: 10px;
+  border-radius: var(--cm-radius-md);
   border-top: 3px solid;
   padding: 16px 18px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  box-shadow: var(--cm-shadow-sm);
   position: relative;
   transition: transform .15s, box-shadow .15s;
   width: 100%;
@@ -365,11 +365,11 @@ async function loadOverview() {
 .stat-card.clickable { cursor: pointer; }
 .stat-card.clickable:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+  box-shadow: var(--cm-shadow-md);
 }
 .stat-icon {
   width: 42px; height: 42px;
-  border-radius: 9px;
+  border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
@@ -410,13 +410,13 @@ async function loadOverview() {
 /* 待办快捷操作卡片 */
 .todo-card {
   background: #fff;
-  border-radius: 10px;
+  border-radius: var(--cm-radius-md);
   border-left: 4px solid;
   padding: 14px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  box-shadow: var(--cm-shadow-sm);
 }
 .todo-left {
   display: flex;

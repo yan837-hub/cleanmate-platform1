@@ -1,7 +1,42 @@
 <template>
   <div>
+    <!-- 当前/即将上门订单（有数据时才显示，置顶） -->
+    <template v-if="activeOrder">
+      <div :class="['active-order-banner', activeOrder.status === 4 ? 'active-order-banner--inservice' : 'active-order-banner--upcoming']">
+        <el-icon size="18"><component :is="activeOrder.status === 4 ? 'Tools' : 'Timer'" /></el-icon>
+        <span>{{ activeOrder.status === 4 ? '保洁员正在为您服务中' : '保洁员即将上门' }}</span>
+      </div>
+      <el-card class="active-order-card" shadow="always" @click="$router.push(`/customer/orders/${activeOrder.id}`)">
+        <div class="active-order-inner">
+          <div class="active-order-info">
+            <div class="active-order-header">
+              <el-tag :type="activeOrder.status === 4 ? 'primary' : ''" size="small" round>
+                {{ activeOrder.status === 4 ? '服务中' : '待上门' }}
+              </el-tag>
+              <span class="active-order-no">{{ activeOrder.orderNo }}</span>
+            </div>
+            <div class="active-order-row">
+              <el-icon size="14" color="#71717a"><Calendar /></el-icon>
+              <span>{{ formatTime(activeOrder.appointTime) }}</span>
+            </div>
+            <div class="active-order-row">
+              <el-icon size="14" color="#71717a"><Location /></el-icon>
+              <span class="active-order-addr">{{ activeOrder.addressSnapshot }}</span>
+            </div>
+            <div class="active-order-row">
+              <el-icon size="14" color="#71717a"><Briefcase /></el-icon>
+              <span>{{ activeOrder.serviceTypeName }}</span>
+            </div>
+          </div>
+          <el-button type="primary" size="default" round style="flex-shrink:0">
+            查看详情 →
+          </el-button>
+        </div>
+      </el-card>
+    </template>
+
     <!-- Banner -->
-    <div class="welcome-banner">
+    <div class="welcome-banner" :style="{ marginTop: activeOrder ? '16px' : '0' }">
       <div class="b-ring b-ring-1"></div>
       <div class="b-ring b-ring-2"></div>
       <div class="b-ring b-ring-3"></div>
@@ -33,7 +68,7 @@
 
     <!-- 统计卡片 -->
     <el-row :gutter="16" style="margin-top: 20px">
-      <el-col :span="6" v-for="stat in statCards" :key="stat.label">
+      <el-col :span="8" v-for="stat in statCards" :key="stat.label">
         <div class="stat-card">
           <div class="stat-icon-wrap" :style="{ background: stat.iconBg }">
             <el-icon :size="22" :color="stat.color"><component :is="stat.icon" /></el-icon>
@@ -68,27 +103,49 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { formatTime } from '@/utils/time'
 import { useUserStore } from '@/store/user'
-import { getCustomerStats } from '@/api/order'
+import { getCustomerStats, getMyOrders } from '@/api/order'
 
 const userStore = useUserStore()
 
 const rawStats = ref({ total: 0, pending: 0, done: 0 })
+const activeOrder = ref(null)
 
+// 去掉硬编码好评率，改为 3 个真实统计项
 const statCards = computed(() => [
-  { label: '累计预约', value: rawStats.value.total,  icon: 'Calendar', color: '#0ea5e9', bg: '#fff', iconBg: 'rgba(14,165,233,.1)' },
-  { label: '待服务',   value: rawStats.value.pending, icon: 'Clock',    color: '#06b6d4', bg: '#fff', iconBg: 'rgba(6,182,212,.1)'  },
-  { label: '已完成',   value: rawStats.value.done,    icon: 'Check',    color: '#14b8a6', bg: '#fff', iconBg: 'rgba(20,184,166,.1)'  },
-  { label: '好评率',   value: '100%',                 icon: 'Star',     color: '#10b981', bg: '#fff', iconBg: 'rgba(16,185,129,.1)' },
+  { label: '累计预约', value: rawStats.value.total,   icon: 'Calendar', color: '#0ea5e9', iconBg: 'rgba(14,165,233,.1)' },
+  { label: '待服务',   value: rawStats.value.pending, icon: 'Clock',    color: '#06b6d4', iconBg: 'rgba(6,182,212,.1)'  },
+  { label: '已完成',   value: rawStats.value.done,    icon: 'Check',    color: '#14b8a6', iconBg: 'rgba(20,184,166,.1)'  },
 ])
 
-onMounted(async () => {
+async function loadStats() {
   try {
     const data = await getCustomerStats()
     rawStats.value = { total: data.total, pending: data.pending, done: data.done }
   } catch {}
+}
+
+async function loadActiveOrder() {
+  try {
+    // 优先 status=4（服务中），其次 status=3（待上门）
+    const res = await getMyOrders({ current: 1, size: 20 })
+    const orders = res.records ?? res ?? []
+    activeOrder.value =
+      orders.find(o => o.status === 4) ||
+      orders.find(o => o.status === 3) ||
+      null
+  } catch {}
+}
+
+let timer = null
+onMounted(() => {
+  loadStats()
+  loadActiveOrder()
+  timer = setInterval(loadActiveOrder, 30000)
 })
+onUnmounted(() => clearInterval(timer))
 
 const services = [
   { name: '日常保洁', desc: '日常家庭清洁，让家焕然一新', price: '¥35/时', color: '#0ea5e9' },
@@ -101,13 +158,66 @@ const services = [
 </script>
 
 <style scoped>
+/* ── 当前/即将上门订单 ── */
+.active-order-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--cm-radius-md) var(--cm-radius-md) 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+.active-order-banner--inservice {
+  background: linear-gradient(90deg, #0ea5e9, #0284c7);
+}
+.active-order-banner--upcoming {
+  background: linear-gradient(90deg, #14b8a6, #0d9488);
+}
+.active-order-card {
+  cursor: pointer;
+  border-radius: 0 0 var(--cm-radius-md) var(--cm-radius-md);
+  border-top: none;
+  transition: box-shadow .2s;
+}
+.active-order-card:hover { box-shadow: 0 6px 24px rgba(14,165,233,.18); }
+.active-order-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.active-order-info { flex: 1; min-width: 0; }
+.active-order-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.active-order-no { font-size: 12px; color: #9ca3af; }
+.active-order-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 5px;
+}
+.active-order-addr {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 420px;
+}
+
 /* ── Banner ── */
 .welcome-banner {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #0369a1 0%, #0ea5e9 100%);
+  background: linear-gradient(135deg, #0369a1 0%, var(--cm-primary) 100%);
   color: #fff;
-  border-radius: 20px;
+  border-radius: var(--cm-radius-lg);
   padding: 36px 48px;
   display: flex;
   align-items: center;
@@ -162,7 +272,7 @@ const services = [
   background: rgba(255,255,255,.14);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,.22);
-  border-radius: 16px;
+  border-radius: var(--cm-radius-md);
   padding: 20px 28px;
   flex-shrink: 0;
 }
@@ -177,20 +287,20 @@ const services = [
 .trust-label  { font-size: 12px; color: rgba(255,255,255,.72); margin-top: 3px; display: block; }
 .trust-divider { width: 1px; height: 38px; background: rgba(255,255,255,.2); }
 
-/* ── 统计卡片（水平布局）── */
+/* ── 统计卡片 ── */
 .stat-card {
   display: flex;
   align-items: center;
   gap: 16px;
   background: #fff;
-  border-radius: 14px;
+  border-radius: var(--cm-radius-md);
   padding: 20px 22px;
   border: 1px solid #e4e4e7;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  box-shadow: var(--cm-shadow-sm);
   transition: transform .2s, box-shadow .2s;
   cursor: default;
 }
-.stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--cm-shadow-md); }
 .stat-icon-wrap {
   display: inline-flex;
   align-items: center;
@@ -222,7 +332,7 @@ const services = [
   content: '';
   display: inline-block;
   width: 3px; height: 16px;
-  background: #0ea5e9;
+  background: var(--cm-primary);
   border-radius: 2px;
 }
 
@@ -233,13 +343,13 @@ const services = [
   gap: 14px;
   background: #fff;
   border: 1px solid #e4e4e7;
-  border-radius: 14px;
+  border-radius: var(--cm-radius-md);
   padding: 18px 20px;
   cursor: pointer;
   transition: all .2s;
 }
 .service-card:hover {
-  border-color: #0ea5e9;
+  border-color: var(--cm-primary);
   box-shadow: 0 4px 20px rgba(14,165,233,.14);
   transform: translateY(-2px);
 }

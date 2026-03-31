@@ -4,10 +4,12 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cleanmate.entity.CleanerScheduleOverride;
 import com.cleanmate.entity.CleanerScheduleTemplate;
 import com.cleanmate.entity.CleanerTimeLock;
+import com.cleanmate.entity.SystemConfig;
 import com.cleanmate.mapper.CleanerScheduleTemplateMapper;
 import com.cleanmate.service.ICleanerScheduleOverrideService;
 import com.cleanmate.service.ICleanerScheduleTemplateService;
 import com.cleanmate.service.ICleanerTimeLockService;
+import com.cleanmate.service.ISystemConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,8 @@ public class CleanerScheduleTemplateServiceImpl extends ServiceImpl<CleanerSched
     private final ICleanerScheduleOverrideService overrideService;
     @Lazy
     private final ICleanerTimeLockService timeLockService;
+    @Lazy
+    private final ISystemConfigService systemConfigService;
 
     /**
      * 判断保洁员在指定时段是否可接单：
@@ -35,9 +39,12 @@ public class CleanerScheduleTemplateServiceImpl extends ServiceImpl<CleanerSched
     @Override
     public boolean isCleanerAvailable(Long cleanerId, LocalDateTime lockStart, LocalDateTime lockEnd) {
         LocalDate date = lockStart.toLocalDate();
-        // 实际服务时间（去掉两端各30min的通勤缓冲）
-        LocalTime serviceStart = lockStart.plusMinutes(30).toLocalTime();
-        LocalTime serviceEnd   = lockEnd.minusMinutes(30).toLocalTime();
+        // 实际服务时间（去掉两端通勤缓冲）
+        SystemConfig bufferCfg = systemConfigService.lambdaQuery()
+                .eq(SystemConfig::getConfigKey, "commute_buffer_minutes").one();
+        long bufferMin = bufferCfg != null ? Long.parseLong(bufferCfg.getConfigValue()) : 30L;
+        LocalTime serviceStart = lockStart.plusMinutes(bufferMin).toLocalTime();
+        LocalTime serviceEnd   = lockEnd.minusMinutes(bufferMin).toLocalTime();
 
         // ① 查特殊调整（override 优先）
         CleanerScheduleOverride override = overrideService.lambdaQuery()

@@ -128,15 +128,19 @@ public class CustomerAddressController {
             return;
         }
         // 调高德 API 解析完整地址
-        String fullAddr = dto.getProvince() + dto.getCity() + dto.getDistrict() + dto.getDetail();
+        // 过滤掉直辖市的行政占位符"市辖区"，避免影响地理编码精度
+        String city     = "市辖区".equals(dto.getCity())     ? "" : (dto.getCity()     == null ? "" : dto.getCity());
+        String district = "市辖区".equals(dto.getDistrict()) ? "" : (dto.getDistrict() == null ? "" : dto.getDistrict());
+        String fullAddr = dto.getProvince() + city + district + dto.getDetail();
         java.math.BigDecimal[] coords = geocodingUtil.geocode(fullAddr);
         if (coords != null) {
             address.setLongitude(coords[0]);
             address.setLatitude(coords[1]);
             return;
         }
-        // 高德失败 → 按城市名兜底
-        double[] c = CITY_COORDS.getOrDefault(dto.getCity(), new double[]{106.5516, 29.5630});
+        // 高德失败 → 按城市名兜底（优先用真实区名兜底）
+        String fallbackCity = "市辖区".equals(dto.getCity()) ? dto.getProvince() : dto.getCity();
+        double[] c = CITY_COORDS.getOrDefault(fallbackCity, new double[]{106.5516, 29.5630});
         address.setLongitude(java.math.BigDecimal.valueOf(c[0]));
         address.setLatitude(java.math.BigDecimal.valueOf(c[1]));
     }

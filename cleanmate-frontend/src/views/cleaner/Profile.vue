@@ -251,6 +251,7 @@ import { getUserInfo, changePassword } from '@/api/auth'
 import { getMyCleanerProfile, updateMyCleanerProfile } from '@/api/order'
 import { getServiceTypes } from '@/api/service'
 import request from '@/utils/request'
+import { formatTime } from '@/utils/time'
 
 const serviceTypeOptions = ref([])
 
@@ -445,8 +446,6 @@ async function submitPassword() {
     ElMessage.error(e?.message || '修改失败，请检查当前密码')
   } finally { pwdLoading.value = false }
 }
-
-function formatTime(t) { return t ? String(t).replace('T', ' ').substring(0, 16) : '-' }
 
 async function loadServiceTypes() {
   try {

@@ -11,7 +11,7 @@
         <div v-if="loadingOrders" class="loading-wrap">
           <el-skeleton :rows="4" animated />
         </div>
-        <el-empty v-else-if="orders.length === 0" description="暂无待派单订单" />
+        <el-empty v-else-if="orders.length === 0" description="暂无待派单订单" :image-size="80" />
         <div
           v-for="order in orders"
           :key="order.id"
@@ -59,7 +59,7 @@
     <div class="right-panel">
       <!-- 未选中订单时的空状态 -->
       <div v-if="!selectedOrder" class="empty-hint">
-        <el-empty description="请从左侧点击一个订单，查看候选保洁员" />
+        <el-empty description="请从左侧点击一个订单，查看候选保洁员" :image-size="80" />
       </div>
 
       <template v-else>
@@ -105,6 +105,7 @@
           <el-empty
             v-else-if="candidates.length === 0"
             description="暂无合适保洁员，可尝试调整预约时间"
+            :image-size="80"
           />
           <div v-for="c in candidates" :key="c.userId" class="cleaner-card">
             <div class="cleaner-main">
@@ -125,9 +126,9 @@
                   >{{ c.scheduleStatus }}</el-tag>
                 </div>
                 <div class="cleaner-meta">
-                  <span>⭐ {{ c.avgScore != null ? Number(c.avgScore).toFixed(1) : '-' }}</span>
-                  <span>📍 {{ c.distanceKm != null ? c.distanceKm.toFixed(1) : '-' }} km</span>
-                  <span>📋 今日 {{ c.todayOrderCount }} 单</span>
+                  <span class="meta-item"><el-icon><Star /></el-icon> {{ c.avgScore != null ? Number(c.avgScore).toFixed(1) : '-' }}</span>
+                  <span class="meta-item"><el-icon><Location /></el-icon> {{ c.distanceKm != null ? c.distanceKm.toFixed(1) : '-' }} km</span>
+                  <span class="meta-item"><el-icon><List /></el-icon> 今日 {{ c.todayOrderCount }} 单</span>
                 </div>
                 <div v-if="c.prevOrderAddress" class="prev-addr">
                   上一单：{{ c.prevOrderAddress }}
@@ -169,7 +170,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Refresh, Clock, Location } from '@element-plus/icons-vue'
+import { Refresh, Clock, Location, Star, List } from '@element-plus/icons-vue'
 import { getPendingOrders, getDispatchCandidates, manualDispatch, autoDispatch } from '@/api/admin'
 
 // ── 左侧状态 ──────────────────────────────────────────
@@ -539,6 +540,7 @@ onUnmounted(() => clearInterval(pollTimer))
   color: #6b7280;
   margin-bottom: 4px;
 }
+.meta-item { display: inline-flex; align-items: center; gap: 3px; }
 
 .prev-addr {
   font-size: 12px;

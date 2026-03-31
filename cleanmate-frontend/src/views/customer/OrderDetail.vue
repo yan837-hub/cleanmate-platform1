@@ -15,7 +15,7 @@
               </div>
             </template>
             <template v-else>
-              <el-tag :type="statusTagType(order.status)" size="large">{{ statusText(order.status) }}</el-tag>
+              <el-tag :type="orderStatusType(order)" size="large">{{ orderStatusText(order) }}</el-tag>
               <div class="status-hint">{{ statusHint(order.status) }}</div>
             </template>
           </div>
@@ -387,6 +387,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getOrderDetail, cancelOrder, confirmComplete, reportNoShow, getOrderReview, submitReview, submitComplaint, getOrderComplaint, submitReschedule, getRescheduleStatus, payDeposit, payFinal, payFull } from '@/api/order'
 import { Warning, Clock } from '@element-plus/icons-vue'
+import { formatTime } from '@/utils/time'
+import { orderStatusText, orderStatusType } from '@/utils/orderStatus'
 
 const route = useRoute()
 const router = useRouter()
@@ -414,21 +416,19 @@ const submittingReschedule = ref(false)
 const newAppointTime      = ref('')
 const rescheduleRecord    = ref(null)
 
-const STATUS_MAP = {
-  1: { text: '待派单', type: 'info',    hint: '系统正在为您匹配保洁员，请稍候' },
-  2: { text: '待确认', type: 'warning', hint: '保洁员已收到派单，等待确认接单' },
-  3: { text: '待上门', type: '',        hint: '保洁员已确认，请在预约时间等候' },
-  9: { text: '改期审核中', type: 'warning', hint: '改期申请已提交，等待保洁员确认，原时间暂保留' },
-  4: { text: '服务中', type: 'primary', hint: '保洁员正在为您提供服务' },
-  5: { text: '待确认完成', type: 'warning', hint: '服务已完成，请确认完成；超时将自动确认' },
-  6: { text: '已完成', type: 'success', hint: '订单已完成，感谢您的使用！' },
-  7: { text: '售后中', type: 'danger',  hint: '投诉已提交，管理员正在处理，请耐心等待' },
-  8: { text: '已取消', type: 'info',    hint: '订单已取消' }
+const HINT_MAP = {
+  1: '系统正在为您匹配保洁员，请稍候',
+  2: '保洁员已收到派单，等待确认接单',
+  3: '保洁员已确认，请在预约时间等候',
+  4: '保洁员正在为您提供服务',
+  5: '服务已完成，请确认完成；超时将自动确认',
+  6: '订单已完成，感谢您的使用！',
+  7: '投诉已提交，管理员正在处理，请耐心等待',
+  8: '订单已取消',
+  9: '改期申请已提交，等待保洁员确认，原时间暂保留',
 }
 
-function statusText(s) { return STATUS_MAP[s]?.text || '未知' }
-function statusTagType(s) { return STATUS_MAP[s]?.type || '' }
-function statusHint(s) { return STATUS_MAP[s]?.hint || '' }
+function statusHint(s) { return HINT_MAP[s] || '' }
 
 const showActions = computed(() => order.value && [1, 2, 3, 5].includes(order.value.status))
 
@@ -474,11 +474,6 @@ const canReportNoShow = computed(() => {
   appointTime.setMinutes(appointTime.getMinutes() + 30)
   return new Date() > appointTime
 })
-
-function formatTime(t) {
-  if (!t) return ''
-  return t.replace('T', ' ').slice(0, 16)
-}
 
 function fmtComplaintTime(t) { return t ? t.replace('T', ' ').slice(0, 16) : '--' }
 

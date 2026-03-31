@@ -66,15 +66,15 @@ import request from '@/utils/request'
 
 // key → { name, hint, unit, group }
 const labelMap = {
-  commission_rate:          { name: '平台佣金比例',     hint: '订单完成后平台从保洁员收入中抽取的比例',       unit: '（如 0.15 = 15%）', group: 'trade' },
-  deposit_rate:             { name: '定金比例',         hint: '顾客下单时预付的定金占总价的比例',             unit: '（如 0.20 = 20%）', group: 'trade' },
-  auto_confirm_hours:       { name: '自动确认时长',     hint: '服务完成后顾客未操作，系统自动确认完成的等待时间', unit: '小时',             group: 'trade' },
-  refund_deadline_hours:    { name: '退单截止时间',     hint: '已接单状态下，顾客最晚可取消订单的时间节点',   unit: '服务开始前 N 小时', group: 'trade' },
-  dispatch_max_distance_km: { name: '派单最大距离',     hint: '超出此距离的保洁员不参与自动派单候选',         unit: 'km',               group: 'dispatch' },
-  commute_buffer_minutes:   { name: '通勤缓冲时间',     hint: '档期检查时，服务前后各预留的通勤时间',         unit: '分钟',             group: 'dispatch' },
-  dispatch_timeout_minutes: { name: '接单响应超时',     hint: '保洁员收到派单通知后，超时未响应则重新派单',   unit: '分钟',             group: 'dispatch' },
-  checkin_max_distance_m:   { name: 'GPS 签到偏差上限',   hint: '保洁员签到时与服务地址的最大允许距离偏差',         unit: '米',               group: 'checkin' },
-  cleaner_cancel_hours:     { name: '保洁员取消截止时间', hint: '已接单状态下，保洁员最晚可主动取消订单的时间节点', unit: '服务开始前 N 小时', group: 'trade'   },
+  commission_rate:          { name: '平台佣金比例',       hint: '订单完成后平台从保洁员收入中抽取的比例',           unit: '（如 0.15 = 15%）',  group: 'trade',    type: 'decimal', min: 0,    max: 1    },
+  deposit_rate:             { name: '定金比例',           hint: '顾客下单时预付的定金占总价的比例',                 unit: '（如 0.20 = 20%）',  group: 'trade',    type: 'decimal', min: 0,    max: 1    },
+  auto_confirm_hours:       { name: '自动确认时长',       hint: '服务完成后顾客未操作，系统自动确认完成的等待时间', unit: '小时',               group: 'trade',    type: 'int',     min: 1,    max: 168  },
+  refund_deadline_hours:    { name: '退单截止时间',       hint: '已接单状态下，顾客最晚可取消订单的时间节点',       unit: '服务开始前 N 小时',  group: 'trade',    type: 'int',     min: 1,    max: 72   },
+  cleaner_cancel_hours:     { name: '保洁员取消截止时间', hint: '已接单状态下，保洁员最晚可主动取消订单的时间节点', unit: '服务开始前 N 小时',  group: 'trade',    type: 'decimal', min: 0.5,  max: 72   },
+  dispatch_max_distance_km: { name: '派单最大距离',       hint: '超出此距离的保洁员不参与自动派单候选',             unit: 'km',                 group: 'dispatch', type: 'decimal', min: 1,    max: 200  },
+  commute_buffer_minutes:   { name: '通勤缓冲时间',       hint: '档期检查时，服务前后各预留的通勤时间',             unit: '分钟',               group: 'dispatch', type: 'int',     min: 0,    max: 120  },
+  dispatch_timeout_minutes: { name: '接单响应超时',       hint: '保洁员收到派单通知后，超时未响应则重新派单',       unit: '分钟',               group: 'dispatch', type: 'int',     min: 5,    max: 1440 },
+  checkin_max_distance_m:   { name: 'GPS 签到偏差上限',   hint: '保洁员签到时与服务地址的最大允许距离偏差',         unit: '米',                 group: 'checkin',  type: 'int',     min: 50,   max: 5000 },
 }
 
 const groups = [
@@ -139,6 +139,23 @@ async function confirmEdit(row) {
   const newVal = editingValue.value.trim()
   if (newVal === row.configValue) { cancelEdit(); return }
 
+  const meta = labelMap[row.configKey]
+  if (meta) {
+    const num = Number(newVal)
+    if (isNaN(num) || newVal === '') {
+      ElMessage.error('请输入有效数字'); return
+    }
+    if (meta.type === 'int' && !Number.isInteger(num)) {
+      ElMessage.error(`${meta.name} 必须为整数`); return
+    }
+    if (meta.min !== undefined && num < meta.min) {
+      ElMessage.error(`${meta.name} 不能小于 ${meta.min}`); return
+    }
+    if (meta.max !== undefined && num > meta.max) {
+      ElMessage.error(`${meta.name} 不能大于 ${meta.max}`); return
+    }
+  }
+
   saving.value = true
   const oldVal = row.configValue
   try {
@@ -167,7 +184,7 @@ onMounted(loadConfig)
 </script>
 
 <style scoped>
-.config-page { max-width: 860px; display: flex; flex-direction: column; gap: 20px; }
+.config-page { display: flex; flex-direction: column; gap: 20px; }
 
 /* 分组卡片 */
 .config-group {

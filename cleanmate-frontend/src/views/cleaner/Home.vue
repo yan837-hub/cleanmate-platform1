@@ -58,6 +58,7 @@
             <el-button
               type="primary"
               size="large"
+              :disabled="!canOperate"
               :loading="actionLoadingId === order.id + '_accept'"
               @click="doAccept(order.id)"
             >
@@ -67,6 +68,7 @@
               type="danger"
               plain
               size="large"
+              :disabled="!canOperate"
               :loading="actionLoadingId === order.id + '_reject'"
               @click="doReject(order.id)"
             >
@@ -120,9 +122,9 @@
     </template>
 
     <!-- 统计卡片 -->
-    <el-row :gutter="20" style="margin-top: 8px">
+    <el-row :gutter="20" style="margin-top: 8px" v-loading="statsLoading">
       <el-col :span="6" v-for="stat in statCards" :key="stat.label">
-        <div class="stat-card" :style="{ background: stat.bg }" v-loading="statsLoading">
+        <div class="stat-card" :style="{ background: stat.bg }">
           <div class="stat-icon-wrap" :style="{ background: stat.iconBg }">
             <el-icon :size="22" :color="stat.color"><component :is="stat.icon" /></el-icon>
           </div>
@@ -139,30 +141,64 @@
           <template #header>
             <div style="display:flex;justify-content:space-between;align-items:center">
               <span style="font-weight:600;font-size:15px">今日待服务订单</span>
-              <el-tag size="small" type="info" round>{{ todayOrders.length }} 单</el-tag>
+              <el-tag size="small" type="info" round>{{ inServiceOrders.length + upcomingOrders.length }} 单</el-tag>
             </div>
           </template>
 
-          <el-empty v-if="!todayLoading && todayOrders.length === 0" description="暂无待服务订单" :image-size="80" />
+          <el-empty
+            v-if="!todayLoading && inServiceOrders.length === 0 && upcomingOrders.length === 0"
+            description="暂无待服务订单"
+            :image-size="80"
+          />
 
-          <div v-for="order in todayOrders" :key="order.id" class="today-order-item">
-            <div class="today-order-left">
-              <el-tag :type="statusType(order.status)" size="small" round>{{ order.statusDesc }}</el-tag>
-              <span class="today-order-time">{{ formatTime(order.appointTime) }}</span>
-              <span class="today-order-type">{{ order.serviceTypeName }}</span>
+          <!-- 服务中（status=4）：置顶，高亮显示 -->
+          <template v-if="inServiceOrders.length > 0">
+            <div class="today-section-label today-section-label--inservice">
+              <el-icon size="12"><Tools /></el-icon> 服务中
             </div>
-            <div class="today-order-right">
-              <span class="today-order-addr">{{ order.addressSnapshot }}</span>
-              <el-button
-                type="primary"
-                link
-                size="small"
-                @click="$router.push(`/cleaner/orders/${order.id}`)"
-              >
-                查看详情 →
-              </el-button>
+            <div v-for="order in inServiceOrders" :key="order.id" class="today-order-item today-order-item--inservice">
+              <div class="today-order-left">
+                <el-tag type="primary" size="small" round>服务中</el-tag>
+                <span class="today-order-time">{{ formatTime(order.appointTime) }}</span>
+                <span class="today-order-type">{{ order.serviceTypeName }}</span>
+              </div>
+              <div class="today-order-right">
+                <span class="today-order-addr">{{ order.addressSnapshot }}</span>
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="$router.push(`/cleaner/orders/${order.id}`)"
+                >
+                  去完工上报 →
+                </el-button>
+              </div>
             </div>
-          </div>
+          </template>
+
+          <!-- 待上门（status=3）：普通展示 -->
+          <template v-if="upcomingOrders.length > 0">
+            <div v-if="inServiceOrders.length > 0" class="today-section-label today-section-label--upcoming">
+              <el-icon size="12"><Timer /></el-icon> 待上门
+            </div>
+            <div v-for="order in upcomingOrders" :key="order.id" class="today-order-item">
+              <div class="today-order-left">
+                <el-tag size="small" round>待上门</el-tag>
+                <span class="today-order-time">{{ formatTime(order.appointTime) }}</span>
+                <span class="today-order-type">{{ order.serviceTypeName }}</span>
+              </div>
+              <div class="today-order-right">
+                <span class="today-order-addr">{{ order.addressSnapshot }}</span>
+                <el-button
+                  type="primary"
+                  link
+                  size="small"
+                  @click="$router.push(`/cleaner/orders/${order.id}`)"
+                >
+                  查看详情 →
+                </el-button>
+              </div>
+            </div>
+          </template>
         </el-card>
       </el-col>
 
@@ -172,10 +208,19 @@
             <span style="font-weight:600;font-size:15px">快捷操作</span>
           </template>
           <div class="quick-actions">
-            <div class="quick-btn primary" @click="$router.push('/cleaner/grab')">
-              <el-icon size="18"><ShoppingBag /></el-icon>
-              <span>去抢单</span>
-            </div>
+            <el-tooltip
+              :disabled="canOperate"
+              content="账号审核通过后才能接单"
+              placement="left"
+            >
+              <div
+                :class="['quick-btn', 'primary', !canOperate && 'quick-btn--disabled']"
+                @click="canOperate && $router.push('/cleaner/grab')"
+              >
+                <el-icon size="18"><ShoppingBag /></el-icon>
+                <span>去抢单</span>
+              </div>
+            </el-tooltip>
             <div class="quick-btn" @click="$router.push('/cleaner/orders')">
               <el-icon size="18"><List /></el-icon>
               <span>我的订单</span>
@@ -197,64 +242,65 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { formatTime } from '@/utils/time'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ShoppingBag, List, Calendar, Wallet, Warning, CircleClose, Bell, OfficeBuilding, Edit } from '@element-plus/icons-vue'
+import { ShoppingBag, List, Calendar, Wallet, Warning, CircleClose, Bell, OfficeBuilding, Edit, Tools, Timer } from '@element-plus/icons-vue'
 import { getCleanerStats, getCleanerOrders, acceptOrder, rejectOrder } from '@/api/order'
 import { getUserInfo } from '@/api/auth'
-
-const router = useRouter()
 
 const statsLoading = ref(false)
 const todayLoading = ref(false)
 const actionLoadingId = ref(null)
 
 const stats = ref({ todayOrders: 0, pendingDispatch: 0, monthlyCompleted: 0, monthlyIncome: 0 })
-const todayOrders = ref([])
+const inServiceOrders = ref([])   // status=4
+const upcomingOrders = ref([])    // status=3
 const pendingDispatchOrders = ref([])
 const pendingRescheduleOrders = ref([])
 
-// 审核/账号状态提示
 const accountAlert = ref(null)
+// 只有账号正常（status!=3）且审核通过（auditStatus==1）才能操作
+const canOperate = ref(true)
 
 async function loadAccountStatus() {
   try {
     const info = await getUserInfo()
-    const auditStatus = info.auditStatus
-    const userStatus = info.status
+    const { auditStatus, status: userStatus } = info
+
     if (userStatus === 3) {
-      // 账号被禁用（优先显示）
+      canOperate.value = false
       accountAlert.value = {
         type: 'error',
-        icon: 'CircleClose',
+        icon: CircleClose,
         title: '账号已被禁用',
         description: '账号已被禁用，请联系平台客服',
       }
     } else if (auditStatus === 3) {
-      // 审核拒绝，可重新提交
+      canOperate.value = false
       accountAlert.value = {
         type: 'error-audit',
-        icon: 'CircleClose',
+        icon: CircleClose,
         title: '审核未通过',
         description: `审核未通过${info.auditRemark ? '：' + info.auditRemark : ''}，请修改后重新提交资料`,
       }
-    } else if (auditStatus === 2) {
-      // 待审核
+    } else if (auditStatus === 2 || auditStatus == null) {
+      canOperate.value = false
       accountAlert.value = {
         type: 'warning',
-        icon: 'Warning',
+        icon: Warning,
         title: '账号审核中',
         description: '您的账号正在审核中，审核通过后可接单。请先完善您的真实姓名和身份证信息。',
       }
     } else if (info.companyName) {
-      // 正常状态的公司保洁员：显示所属公司
+      canOperate.value = true
       accountAlert.value = {
         type: 'company',
-        icon: 'OfficeBuilding',
+        icon: OfficeBuilding,
         title: '公司保洁员',
         description: `您隶属于「${info.companyName}」，如有问题请联系公司负责人`,
       }
     } else {
+      canOperate.value = true
       accountAlert.value = null
     }
   } catch {
@@ -283,14 +329,16 @@ async function loadStats() {
 async function loadTodayOrders() {
   todayLoading.value = true
   try {
-    // 获取今日待服务：已接单(3)、服务中(4)、状态2也在这里展示
     const res = await getCleanerOrders({ current: 1, size: 20 })
     const allOrders = res.records ?? []
-
     const today = new Date().toDateString()
-    todayOrders.value = allOrders.filter(o =>
-      [3, 4, 9].includes(o.status) &&
-      new Date(o.appointTime).toDateString() === today
+
+    // status=4 和 3 按今日日期过滤，status=9 单独展示，不在 today 列表
+    inServiceOrders.value = allOrders.filter(o =>
+      o.status === 4 && new Date(o.appointTime).toDateString() === today
+    )
+    upcomingOrders.value = allOrders.filter(o =>
+      o.status === 3 && new Date(o.appointTime).toDateString() === today
     )
     pendingDispatchOrders.value = allOrders.filter(o => o.status === 2)
     pendingRescheduleOrders.value = allOrders.filter(o => o.status === 9)
@@ -328,15 +376,6 @@ async function doReject(orderId) {
   }
 }
 
-function formatTime(t) {
-  return t ? t.replace('T', ' ').substring(0, 16) : '-'
-}
-
-function statusType(s) {
-  return { 2:'warning', 3:'', 4:'primary', 5:'warning', 6:'success', 7:'danger', 8:'info', 9:'warning' }[s] ?? 'info'
-}
-
-// 每30秒自动刷新，及时感知新派单
 let timer = null
 onMounted(() => {
   loadAccountStatus()
@@ -353,8 +392,8 @@ onUnmounted(() => clearInterval(timer))
 <style scoped>
 /* 改期待处理横幅 */
 .reschedule-banner {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6, var(--cm-primary));
+  border-radius: var(--cm-radius-md);
   padding: 12px 20px;
   margin-bottom: 12px;
   display: flex;
@@ -367,8 +406,8 @@ onUnmounted(() => clearInterval(timer))
 
 /* 待接单横幅 */
 .dispatch-banner {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  border-radius: 10px;
+  background: linear-gradient(135deg, var(--cm-warning), #d97706);
+  border-radius: var(--cm-radius-md);
   padding: 14px 20px;
   margin-bottom: 16px;
   display: flex;
@@ -388,7 +427,7 @@ onUnmounted(() => clearInterval(timer))
 .dispatch-card {
   margin-bottom: 12px;
   border: 2px solid #fbbf24;
-  border-radius: 10px;
+  border-radius: var(--cm-radius-md);
 }
 .dispatch-card-inner {
   display: flex;
@@ -426,15 +465,15 @@ onUnmounted(() => clearInterval(timer))
 
 /* 统计卡片 */
 .stat-card {
-  border-radius: 12px;
+  border-radius: var(--cm-radius-md);
   padding: 22px 16px 18px;
   text-align: center;
   cursor: default;
   border: 1px solid #e4e4e7;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  box-shadow: var(--cm-shadow-sm);
   transition: transform .2s, box-shadow .2s;
 }
-.stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--cm-shadow-md); }
 .stat-icon-wrap {
   display: inline-flex;
   align-items: center;
@@ -449,6 +488,20 @@ onUnmounted(() => clearInterval(timer))
 
 /* 今日订单 */
 .today-card :deep(.el-card__body) { padding: 0 20px; }
+
+/* 分段标签 */
+.today-section-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 0 4px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.today-section-label--inservice { color: #0ea5e9; }
+.today-section-label--upcoming  { color: #6b7280; margin-top: 4px; }
+
 .today-order-item {
   display: flex;
   justify-content: space-between;
@@ -458,6 +511,18 @@ onUnmounted(() => clearInterval(timer))
   gap: 12px;
 }
 .today-order-item:last-child { border-bottom: none; }
+
+/* 服务中条目：左侧蓝色竖线强调 */
+.today-order-item--inservice {
+  background: #f0f9ff;
+  border-radius: 6px;
+  padding: 13px 10px;
+  border-left: 3px solid #0ea5e9;
+  border-bottom: 1px solid #e0f2fe;
+  margin-bottom: 2px;
+}
+.today-order-item--inservice:last-child { border-bottom: 1px solid #e0f2fe; }
+
 .today-order-left {
   display: flex;
   align-items: center;
@@ -498,9 +563,14 @@ onUnmounted(() => clearInterval(timer))
   background: #fff;
   transition: all .18s;
 }
-.quick-btn:hover { border-color: #10b981; color: #10b981; background: #f0fdf4; transform: translateX(2px); }
-.quick-btn.primary { background: #10b981; color: #fff; border-color: #10b981; }
+.quick-btn:hover { border-color: var(--cm-success); color: var(--cm-success); background: #f0fdf4; transform: translateX(2px); }
+.quick-btn.primary { background: var(--cm-success); color: #fff; border-color: var(--cm-success); }
 .quick-btn.primary:hover { background: #059669; border-color: #059669; color: #fff; }
+.quick-btn--disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 /* 账号状态提示条 */
 .account-alert {

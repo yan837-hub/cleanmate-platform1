@@ -7,10 +7,12 @@ import com.cleanmate.entity.CleanerTimeLock;
 import com.cleanmate.exception.BusinessException;
 import com.cleanmate.exception.ErrorCode;
 import com.cleanmate.entity.ServiceOrder;
+import com.cleanmate.entity.SystemConfig;
 import com.cleanmate.service.ICleanerScheduleOverrideService;
 import com.cleanmate.service.ICleanerScheduleTemplateService;
 import com.cleanmate.service.ICleanerTimeLockService;
 import com.cleanmate.service.IServiceOrderService;
+import com.cleanmate.service.ISystemConfigService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -38,6 +40,7 @@ public class CleanerScheduleController {
     private final ICleanerScheduleOverrideService overrideService;
     private final ICleanerTimeLockService timeLockService;
     private final IServiceOrderService orderService;
+    private final ISystemConfigService systemConfigService;
 
     // ───────────────────────── 周模板 ─────────────────────────
 
@@ -239,6 +242,10 @@ public class CleanerScheduleController {
                 .orderByAsc(CleanerTimeLock::getLockStart)
                 .list();
 
+        SystemConfig bufferCfg = systemConfigService.lambdaQuery()
+                .eq(SystemConfig::getConfigKey, "commute_buffer_minutes").one();
+        long bufferMin = bufferCfg != null ? Long.parseLong(bufferCfg.getConfigValue()) : 30L;
+
         List<LockSlotVO> result = locks.stream()
                 .filter(l -> {
                     // 排除已完成(6)和已取消(8)订单的锁定
@@ -248,10 +255,10 @@ public class CleanerScheduleController {
                 .map(l -> {
                     LockSlotVO vo = new LockSlotVO();
                     vo.setDate(l.getLockStart().toLocalDate().toString());
-                    // lockStart/lockEnd 含30min缓冲，展示实际服务时段
-                    vo.setStartTime(l.getLockStart().plusMinutes(30)
+                    // lockStart/lockEnd 含通勤缓冲，展示实际服务时段
+                    vo.setStartTime(l.getLockStart().plusMinutes(bufferMin)
                             .toLocalTime().toString().substring(0, 5));
-                    vo.setEndTime(l.getLockEnd().minusMinutes(30)
+                    vo.setEndTime(l.getLockEnd().minusMinutes(bufferMin)
                             .toLocalTime().toString().substring(0, 5));
                     return vo;
                 })

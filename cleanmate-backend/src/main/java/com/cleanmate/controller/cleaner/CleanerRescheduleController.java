@@ -8,11 +8,13 @@ import com.cleanmate.enums.NotificationType;
 import com.cleanmate.enums.OrderStatus;
 import com.cleanmate.exception.BusinessException;
 import com.cleanmate.exception.ErrorCode;
+import com.cleanmate.entity.SystemConfig;
 import com.cleanmate.service.ICleanerScheduleTemplateService;
 import com.cleanmate.service.ICleanerTimeLockService;
 import com.cleanmate.service.INotificationService;
 import com.cleanmate.service.IOrderRescheduleService;
 import com.cleanmate.service.IServiceOrderService;
+import com.cleanmate.service.ISystemConfigService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -34,6 +36,7 @@ public class CleanerRescheduleController {
     private final ICleanerTimeLockService cleanerTimeLockService;
     private final ICleanerScheduleTemplateService scheduleTemplateService;
     private final INotificationService notificationService;
+    private final ISystemConfigService systemConfigService;
 
     /**
      * 查询当前保洁员待处理的改期申请列表
@@ -112,12 +115,15 @@ public class CleanerRescheduleController {
         }
 
         int planMin = order.getPlanDuration() != null ? order.getPlanDuration() : 120;
+        SystemConfig bufferCfg = systemConfigService.lambdaQuery()
+                .eq(SystemConfig::getConfigKey, "commute_buffer_minutes").one();
+        long bufferMin = bufferCfg != null ? Long.parseLong(bufferCfg.getConfigValue()) : 30L;
 
         if (Boolean.TRUE.equals(dto.getApprove())) {
             // ── 通过 ──
             LocalDateTime newTime = record.getNewTime();
-            LocalDateTime newLockStart = newTime.minusMinutes(30);
-            LocalDateTime newLockEnd   = newTime.plusMinutes(planMin + 30);
+            LocalDateTime newLockStart = newTime.minusMinutes(bufferMin);
+            LocalDateTime newLockEnd   = newTime.plusMinutes(planMin + bufferMin);
 
             // 校验新时间档期（旧锁在提交申请时已删，无误判）
             if (!scheduleTemplateService.isCleanerAvailable(cleanerId, newLockStart, newLockEnd)) {
@@ -166,8 +172,8 @@ public class CleanerRescheduleController {
             CleanerTimeLock oldLock = new CleanerTimeLock();
             oldLock.setCleanerId(cleanerId);
             oldLock.setOrderId(order.getId());
-            oldLock.setLockStart(oldTime.minusMinutes(30));
-            oldLock.setLockEnd(oldTime.plusMinutes(planMin + 30));
+            oldLock.setLockStart(oldTime.minusMinutes(bufferMin));
+            oldLock.setLockEnd(oldTime.plusMinutes(planMin + bufferMin));
             cleanerTimeLockService.save(oldLock);
 
             // 订单恢复已接单

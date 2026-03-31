@@ -222,7 +222,7 @@ public class CleanerOrderController {
         // 距预约时间须大于配置的保洁员取消截止时间
         SystemConfig cancelCfg = systemConfigService.lambdaQuery()
                 .eq(SystemConfig::getConfigKey, "cleaner_cancel_hours").one();
-        long cancelDeadlineHours = cancelCfg != null ? Long.parseLong(cancelCfg.getConfigValue()) : 4L;
+        double cancelDeadlineHours = cancelCfg != null ? Double.parseDouble(cancelCfg.getConfigValue()) : 4.0;
         long minutesLeft = java.time.Duration.between(
                 LocalDateTime.now(), order.getAppointTime()).toMinutes();
         if (minutesLeft < cancelDeadlineHours * 60) {

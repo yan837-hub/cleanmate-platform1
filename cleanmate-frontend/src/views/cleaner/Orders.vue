@@ -28,7 +28,7 @@
         </el-table-column>
         <el-table-column label="状态" width="130" align="center">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row)" round>{{ statusLabel(row) }}</el-tag>
+            <el-tag :type="orderStatusType(row)" round>{{ orderStatusText(row) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="90" align="center">
@@ -54,8 +54,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { formatTime } from '@/utils/time'
 import { getCleanerOrders } from '@/api/order'
 import { ElMessage } from 'element-plus'
+import { orderStatusText, orderStatusType } from '@/utils/orderStatus'
 
 const orders = ref([])
 const loading = ref(false)
@@ -81,28 +83,6 @@ async function loadOrders() {
   }
 }
 
-function formatTime(t) {
-  return t ? t.replace('T', ' ').substring(0, 16) : '-'
-}
-
-const STATUS_MAP = {
-  3: { text: '已接单',     type: '' },
-  4: { text: '服务中',     type: 'primary' },
-  5: { text: '待确认完成', type: 'warning' },
-  6: { text: '已完成',     type: 'success' },
-  7: { text: '售后中',     type: 'danger' },
-  8: { text: '已取消',     type: 'info' },
-  9: { text: '改期审核中', type: 'warning' },
-}
-function statusLabel(row) {
-  if (row.status === 7 && row.complaintStatus === 3) return '售后已结案'
-  return STATUS_MAP[row.status]?.text ?? row.statusDesc ?? '未知'
-}
-function statusTagType(row) {
-  if (row.status === 7 && row.complaintStatus === 3) return 'success'
-  return STATUS_MAP[row.status]?.type ?? 'info'
-}
-
 onMounted(loadOrders)
 </script>
 
@@ -114,7 +94,7 @@ onMounted(loadOrders)
   margin-bottom: 20px;
 }
 .page-title { font-size: 20px; font-weight: 700; color: #111; margin: 0; }
-.table-card { border-radius: 10px; }
+.table-card { border-radius: var(--cm-radius-md); }
 .fee-text { font-weight: 600; color: #ef4444; }
 .pagination-wrap {
   margin-top: 20px;

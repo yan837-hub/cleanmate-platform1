@@ -85,6 +85,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getCleanerIncome } from '@/api/order'
+import { formatTime } from '@/utils/time'
 
 const loading = ref(false)
 const selectedMonth = ref(new Date().toISOString().slice(0, 7)) // 默认当月
@@ -111,10 +112,6 @@ async function loadIncome() {
   } finally {
     loading.value = false
   }
-}
-
-function formatTime(t) {
-  return t ? t.replace('T', ' ').substring(0, 16) : '-'
 }
 
 onMounted(loadIncome)

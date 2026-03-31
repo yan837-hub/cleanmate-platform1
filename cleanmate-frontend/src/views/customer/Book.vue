@@ -36,7 +36,7 @@
                   <span v-else>¥{{ s.basePrice }}</span>
                 </div>
               </div>
-              <el-icon v-if="form.serviceTypeId === s.id" class="check-icon" color="#2563eb"><CircleCheckFilled /></el-icon>
+              <el-icon v-if="form.serviceTypeId === s.id" class="check-icon" style="color:var(--cm-primary)"><CircleCheckFilled /></el-icon>
             </div>
           </el-col>
         </el-row>
@@ -127,7 +127,7 @@
       </div>
 
       <!-- Step 3: 确认下单 -->
-      <div v-if="step === 2" style="max-width:760px;margin:0 auto">
+      <div v-if="step === 2" class="confirm-wrap">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="服务类型">
             {{ selectedService && selectedService.name }}
@@ -147,13 +147,17 @@
           <el-descriptions-item v-if="form.remark" label="备注">
             {{ form.remark }}
           </el-descriptions-item>
-          <el-descriptions-item label="预估费用">
-            <span class="fee">¥ {{ estimatedFee }}</span>
-          </el-descriptions-item>
         </el-descriptions>
+
+        <!-- 费用汇总区 -->
+        <div class="fee-summary">
+          <span class="fee-summary-label">预估费用</span>
+          <span class="fee-summary-amount">¥ {{ estimatedFee }}</span>
+        </div>
+
         <div class="step-actions">
           <el-button @click="step = 1">上一步</el-button>
-          <el-button type="primary" :loading="submitting" @click="submitOrder">提交订单</el-button>
+          <el-button type="primary" size="large" :loading="submitting" @click="submitOrder">确认提交订单</el-button>
         </div>
       </div>
     </el-card>
@@ -395,15 +399,15 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   border: 2px solid #e0e7ff;
-  border-radius: 12px;
+  border-radius: var(--cm-radius-md);
   padding: 16px;
   cursor: pointer;
   transition: all .2s;
   position: relative;
   background: #fff;
 }
-.svc-card:hover { border-color: #2563eb; box-shadow: 0 4px 12px rgba(37,99,235,.1); }
-.svc-card.selected { border-color: #2563eb; background: #eff6ff; }
+.svc-card:hover { border-color: var(--cm-primary); box-shadow: 0 4px 12px rgba(14,165,233,.12); }
+.svc-card.selected { border-color: var(--cm-primary); background: #f0f9ff; }
 
 .svc-tag {
   width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
@@ -424,14 +428,28 @@ onMounted(async () => {
   cursor: pointer;
   transition: all .2s;
 }
-.address-item:hover { border-color: #2563eb; }
-.address-item.selected { border-color: #2563eb; background: #eff6ff; }
+.address-item:hover { border-color: var(--cm-primary); }
+.address-item.selected { border-color: var(--cm-primary); background: #f0f9ff; }
 .addr-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
 .addr-contact { font-size: 13px; color: #303133; }
 .addr-detail { font-size: 13px; color: #6b7280; }
 .no-address { color: #9ca3af; font-size: 13px; padding: 8px 0; }
 
-.step-actions { margin-top: 32px; display: flex; justify-content: center; gap: 16px; }
-.fee { font-size: 22px; font-weight: 700; color: #ef4444; }
+.confirm-wrap { max-width: 760px; margin: 0 auto; }
+
+.fee-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 16px 24px;
+  background: #f0f9ff;
+  border: 1.5px solid var(--cm-primary);
+  border-radius: var(--cm-radius-md);
+}
+.fee-summary-label { font-size: 15px; font-weight: 600; color: #374151; }
+.fee-summary-amount { font-size: 28px; font-weight: 700; color: var(--cm-danger); letter-spacing: -0.5px; }
+
+.step-actions { margin-top: 24px; display: flex; justify-content: center; gap: 16px; }
 
 </style>

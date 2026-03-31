@@ -59,6 +59,12 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
     private final IOperationLogService operationLogService;
     private final PasswordEncoder passwordEncoder;
 
+    private long getCommuteBufferMin() {
+        SystemConfig cfg = systemConfigService.lambdaQuery()
+                .eq(SystemConfig::getConfigKey, "commute_buffer_minutes").one();
+        return cfg != null ? Long.parseLong(cfg.getConfigValue()) : 30L;
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createOrder(CreateOrderDTO dto, Long customerId) {
@@ -179,8 +185,9 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
 
         // 检查保洁员档期可用性（模板/特殊调整/时段锁定 三合一校验）
         int planMin = order.getPlanDuration() != null ? order.getPlanDuration() : 120;
-        LocalDateTime lockStart = order.getAppointTime().minusMinutes(30);
-        LocalDateTime lockEnd = order.getAppointTime().plusMinutes(planMin + 30);
+        long bufferMin = getCommuteBufferMin();
+        LocalDateTime lockStart = order.getAppointTime().minusMinutes(bufferMin);
+        LocalDateTime lockEnd = order.getAppointTime().plusMinutes(planMin + bufferMin);
         if (!scheduleTemplateService.isCleanerAvailable(cleanerId, lockStart, lockEnd)) {
             throw new BusinessException(ErrorCode.CLEANER_NOT_AVAILABLE);
         }
@@ -401,8 +408,8 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                     .stream()
                     .anyMatch(pending -> {
                         int pPlan = pending.getPlanDuration() != null ? pending.getPlanDuration() : 120;
-                        LocalDateTime pStart = pending.getAppointTime().minusMinutes(30);
-                        LocalDateTime pEnd   = pending.getAppointTime().plusMinutes(pPlan + 30);
+                        LocalDateTime pStart = pending.getAppointTime().minusMinutes(commuteBufferMin);
+                        LocalDateTime pEnd   = pending.getAppointTime().plusMinutes(pPlan + commuteBufferMin);
                         return pStart.isBefore(lockEnd) && pEnd.isAfter(lockStart);
                     });
             if (pendingConflict) continue;
@@ -538,8 +545,9 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
 
         // 再次校验时段冲突
         int planMin = order.getPlanDuration() != null ? order.getPlanDuration() : 120;
-        LocalDateTime lockStart = order.getAppointTime().minusMinutes(30);
-        LocalDateTime lockEnd   = order.getAppointTime().plusMinutes(planMin + 30);
+        long bufferMin = getCommuteBufferMin();
+        LocalDateTime lockStart = order.getAppointTime().minusMinutes(bufferMin);
+        LocalDateTime lockEnd   = order.getAppointTime().plusMinutes(planMin + bufferMin);
         boolean conflict = cleanerTimeLockService.lambdaQuery()
                 .eq(CleanerTimeLock::getCleanerId, cleanerId)
                 .lt(CleanerTimeLock::getLockStart, lockEnd)
@@ -795,8 +803,9 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         if (order == null) throw new BusinessException(ErrorCode.ORDER_NOT_EXIST);
 
         int planMin = order.getPlanDuration() != null ? order.getPlanDuration() : 120;
-        LocalDateTime lockStart = order.getAppointTime().minusMinutes(30);
-        LocalDateTime lockEnd   = order.getAppointTime().plusMinutes(planMin + 30);
+        long bufferMin = getCommuteBufferMin();
+        LocalDateTime lockStart = order.getAppointTime().minusMinutes(bufferMin);
+        LocalDateTime lockEnd   = order.getAppointTime().plusMinutes(planMin + bufferMin);
         boolean orderHasLoc = order.getLatitude() != null && order.getLongitude() != null;
         double orderLat = orderHasLoc ? order.getLatitude().doubleValue()  : 0;
         double orderLon = orderHasLoc ? order.getLongitude().doubleValue() : 0;
@@ -821,8 +830,8 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                     .list().stream()
                     .anyMatch(p -> {
                         int pp = p.getPlanDuration() != null ? p.getPlanDuration() : 120;
-                        LocalDateTime pStart = p.getAppointTime().minusMinutes(30);
-                        LocalDateTime pEnd   = p.getAppointTime().plusMinutes(pp + 30);
+                        LocalDateTime pStart = p.getAppointTime().minusMinutes(bufferMin);
+                        LocalDateTime pEnd   = p.getAppointTime().plusMinutes(pp + bufferMin);
                         return pStart.isBefore(lockEnd) && pEnd.isAfter(lockStart);
                     });
             if (pendingConflict) continue;
@@ -924,8 +933,9 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
 
         // 2. 校验保洁员档期可用
         int planMin = order.getPlanDuration() != null ? order.getPlanDuration() : 120;
-        LocalDateTime lockStart = order.getAppointTime().minusMinutes(30);
-        LocalDateTime lockEnd   = order.getAppointTime().plusMinutes(planMin + 30);
+        long bufferMin = getCommuteBufferMin();
+        LocalDateTime lockStart = order.getAppointTime().minusMinutes(bufferMin);
+        LocalDateTime lockEnd   = order.getAppointTime().plusMinutes(planMin + bufferMin);
         if (!scheduleTemplateService.isCleanerAvailable(cleanerId, lockStart, lockEnd)) {
             throw new BusinessException(ErrorCode.CLEANER_NOT_AVAILABLE);
         }

@@ -28,15 +28,15 @@
           <div class="order-card-left">
             <div class="order-top-row">
               <span class="order-service">{{ order.serviceTypeName }}</span>
-              <el-tag :type="statusTagType(order)" size="small" round>
-                {{ statusText(order) }}
+              <el-tag :type="orderStatusType(order)" size="small" round>
+                {{ orderStatusText(order) }}
               </el-tag>
             </div>
             <div class="order-no">订单号：{{ order.orderNo }}</div>
             <div class="order-meta">
-              <span>🕐 {{ formatTime(order.appointTime) }}</span>
+              <span class="meta-item"><el-icon><Clock /></el-icon> {{ formatTime(order.appointTime) }}</span>
               <span class="meta-sep">|</span>
-              <span>📍 {{ order.addressSnapshot }}</span>
+              <span class="meta-item"><el-icon><Location /></el-icon> {{ order.addressSnapshot }}</span>
             </div>
           </div>
           <div class="order-card-right" @click.stop>
@@ -93,9 +93,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { formatTime } from '@/utils/time'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Clock, Location } from '@element-plus/icons-vue'
 import { getMyOrders, cancelOrder, confirmComplete } from '@/api/order'
+import { orderStatusText, orderStatusType } from '@/utils/orderStatus'
 
 const router = useRouter()
 
@@ -110,31 +113,6 @@ const cancelReason = ref('')
 const cancelling = ref(false)
 const currentCancelId = ref(null)
 
-const STATUS_MAP = {
-  1: { text: '待派单',    type: 'info' },
-  2: { text: '待确认',    type: 'warning' },
-  3: { text: '待上门',    type: '' },
-  4: { text: '服务中',    type: 'primary' },
-  5: { text: '待确认完成', type: 'warning' },
-  6: { text: '已完成',    type: 'success' },
-  7: { text: '售后中',    type: 'danger' },
-  8: { text: '已取消',    type: 'info' },
-  9: { text: '改期审核中', type: 'warning' }
-}
-
-function statusText(order) {
-  if (order.status === 7 && order.complaintStatus === 3) return '售后已结案'
-  return STATUS_MAP[order.status]?.text || '未知'
-}
-function statusTagType(order) {
-  if (order.status === 7 && order.complaintStatus === 3) return 'success'
-  return STATUS_MAP[order.status]?.type || ''
-}
-
-function formatTime(t) {
-  if (!t) return ''
-  return t.replace('T', ' ').slice(0, 16)
-}
 
 function goDetail(id) {
   router.push(`/customer/orders/${id}`)
@@ -219,7 +197,7 @@ onMounted(loadOrders)
   justify-content: space-between;
   align-items: center;
   border: 1px solid #e0e7ff;
-  border-radius: 10px;
+  border-radius: var(--cm-radius-md);
   padding: 18px 20px;
   margin-bottom: 12px;
   cursor: pointer;
@@ -227,8 +205,8 @@ onMounted(loadOrders)
   gap: 16px;
 }
 .order-card:hover {
-  border-color: #2563eb;
-  box-shadow: 0 4px 16px rgba(37,99,235,.1);
+  border-color: var(--cm-primary);
+  box-shadow: 0 4px 16px rgba(14,165,233,.12);
   transform: translateY(-1px);
 }
 
@@ -250,6 +228,7 @@ onMounted(loadOrders)
   flex-wrap: wrap;
 }
 .meta-sep { color: #d1d5db; }
+.meta-item { display: inline-flex; align-items: center; gap: 3px; }
 
 .order-card-right {
   display: flex;

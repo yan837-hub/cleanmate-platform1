@@ -119,6 +119,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { regionData, codeToText } from 'element-china-area-data'
 import { getUserInfo, changePassword } from '@/api/auth'
 import { getAddresses, addAddress, deleteAddress, setDefaultAddress } from '@/api/address'
+import { formatTime } from '@/utils/time'
 
 // ---- 个人信息 ----
 const infoLoading = ref(false)
@@ -131,10 +132,6 @@ async function loadUserInfo() {
   } catch {} finally {
     infoLoading.value = false
   }
-}
-
-function formatTime(t) {
-  return t ? String(t).replace('T', ' ').substring(0, 16) : '-'
 }
 
 // ---- 修改密码 ----
