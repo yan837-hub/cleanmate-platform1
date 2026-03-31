@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mysql -uroot -p123456 cleaning_service -e \"DESC cleaner_profile;\")"
+    ]
+  }
+}
