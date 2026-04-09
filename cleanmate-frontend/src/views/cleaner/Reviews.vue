@@ -33,6 +33,15 @@
           </span>
         </div>
         <div v-if="item.content" class="review-content">{{ item.content }}</div>
+        <!-- 已有回复 -->
+        <div v-if="item.replyContent" class="reply-content">
+          <span style="color:#909399;font-size:12px">我的回复（{{ fmt(item.repliedAt) }}）：</span>
+          {{ item.replyContent }}
+        </div>
+        <!-- 回复按钮 -->
+        <div v-else style="margin-top:6px">
+          <el-button size="small" link type="primary" @click="openReply(item)">回复评价</el-button>
+        </div>
         <el-divider style="margin:12px 0" />
       </div>
 
@@ -44,13 +53,22 @@
         v-model:current-page="currentPage"
         @current-change="load" />
     </el-card>
+
+    <!-- 回复对话框 -->
+    <el-dialog v-model="replyVisible" title="回复评价" width="480px">
+      <el-input v-model="replyText" type="textarea" :rows="4" placeholder="输入回复内容..." maxlength="200" show-word-limit />
+      <template #footer>
+        <el-button @click="replyVisible = false">取消</el-button>
+        <el-button type="primary" :loading="replying" @click="submitReply">提交回复</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getMyReviews, getMyCleanerProfile } from '@/api/order'
+import { getMyReviews, getMyCleanerProfile, replyReview } from '@/api/order'
 
 const list = ref([])
 const total = ref(0)
@@ -58,6 +76,11 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = 10
 const overallScore = ref(null)
+
+const replyVisible = ref(false)
+const replyText = ref('')
+const replyTarget = ref(null)
+const replying = ref(false)
 
 function fmt(t) { return t ? t.replace('T', ' ').slice(0, 16) : '-' }
 
@@ -78,6 +101,28 @@ async function load() {
   }
 }
 
+function openReply(item) {
+  replyTarget.value = item
+  replyText.value = ''
+  replyVisible.value = true
+}
+
+async function submitReply() {
+  if (!replyText.value.trim()) { ElMessage.warning('请输入回复内容'); return }
+  replying.value = true
+  try {
+    await replyReview(replyTarget.value.id, replyText.value.trim())
+    ElMessage.success('回复成功')
+    replyTarget.value.replyContent = replyText.value.trim()
+    replyTarget.value.repliedAt = new Date().toISOString()
+    replyVisible.value = false
+  } catch {
+    ElMessage.error('回复失败')
+  } finally {
+    replying.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -88,4 +133,5 @@ onMounted(load)
 .scores { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 8px; }
 .score-item { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #606266; }
 .review-content { font-size: 14px; color: #303133; background: #f5f7fa; border-radius: 6px; padding: 8px 12px; }
+.reply-content { font-size: 13px; color: #606266; background: #f0f9ff; border-radius: 6px; padding: 8px 12px; margin-top: 6px; border-left: 3px solid #0ea5e9; }
 </style>

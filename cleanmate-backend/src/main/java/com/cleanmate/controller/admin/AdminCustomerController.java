@@ -14,7 +14,9 @@ import com.cleanmate.mapper.ServiceOrderMapper;
 import com.cleanmate.service.ICustomerProfileService;
 import com.cleanmate.service.IOperationLogService;
 import com.cleanmate.service.IUserService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -88,7 +90,8 @@ public class AdminCustomerController {
     @PutMapping("/{userId}/status")
     public Result<Void> toggleStatus(@PathVariable Long userId,
                                      @RequestParam Integer status,
-                                     org.springframework.security.core.Authentication auth) {
+                                     Authentication auth,
+                                     HttpServletRequest request) {
         if (status != 1 && status != 3) throw new BusinessException(ErrorCode.PARAM_ERROR);
         User user = userService.getById(userId);
         if (user == null || user.getRole() != 1) throw new BusinessException(ErrorCode.USER_NOT_EXIST);
@@ -103,6 +106,7 @@ public class AdminCustomerController {
         opLog.setAction("顾客账号状态变更[userId=" + userId + "]: " + oldStatus + "→" + status
                 + (status == 3 ? "（停用）" : "（启用）"));
         opLog.setRefId(userId);
+        opLog.setIp(request.getRemoteAddr());
         operationLogService.save(opLog);
 
         return Result.success();

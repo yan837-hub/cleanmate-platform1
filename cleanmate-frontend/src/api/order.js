@@ -114,6 +114,11 @@ export function getMyReviews(params) {
   return request.get('/cleaner/orders/reviews', { params })
 }
 
+// 保洁员：回复评价
+export function replyReview(reviewId, replyContent) {
+  return request.put(`/cleaner/orders/reviews/${reviewId}/reply`, { replyContent })
+}
+
 // 保洁员：接单（系统/管理员派单）
 export function acceptOrder(orderId) {
   return request.post(`/cleaner/orders/${orderId}/accept`)

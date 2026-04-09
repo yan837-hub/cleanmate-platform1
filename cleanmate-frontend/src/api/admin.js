@@ -171,3 +171,13 @@ export function updateServiceTypeStatus(id, status) {
 export function getOperationLogs(params) {
   return request.get('/admin/operation-logs', { params })
 }
+
+// ---- 异常签到 ----
+
+export function getAbnormalCheckins(params) {
+  return request.get('/admin/orders/checkins/abnormal', { params })
+}
+
+export function handleAbnormalCheckin(id, remark) {
+  return request.put(`/admin/orders/checkins/${id}/handle`, { remark })
+}

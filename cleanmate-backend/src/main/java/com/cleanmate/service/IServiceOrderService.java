@@ -35,7 +35,7 @@ public interface IServiceOrderService extends IService<ServiceOrder> {
     void reportComplete(Long orderId, Long cleanerId, Integer actualDuration);
 
     /** 自动派单：按距离+评分找最优保洁员，写dispatch_record，状态1->2，返回派单的保洁员ID；无可用保洁员时返回null */
-    Long autoDispatch(Long orderId);
+    Long autoDispatch(Long orderId, Long operatorId);
 
     /** 保洁员接单（状态2->3），创建time_lock */
     void acceptOrder(Long orderId, Long cleanerId);

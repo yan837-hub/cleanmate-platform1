@@ -12,6 +12,7 @@ import com.cleanmate.enums.NotificationType;
 import com.cleanmate.enums.OrderStatus;
 import com.cleanmate.entity.OperationLog;
 import com.cleanmate.service.*;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -82,7 +83,8 @@ public class AdminComplaintController {
     @PutMapping("/{id}")
     public Result<Void> handle(@PathVariable Long id,
                                @RequestBody HandleDTO dto,
-                               Authentication auth) {
+                               Authentication auth,
+                               HttpServletRequest request) {
         Complaint complaint = complaintService.getById(id);
         if (complaint == null) return Result.error(404, "投诉记录不存在");
         if (complaint.getStatus() == 3) return Result.error("该投诉已结案，无法重复处理");
@@ -116,6 +118,7 @@ public class AdminComplaintController {
             opLog.setAction("投诉结案[complaintId=" + id + ", orderId=" + complaint.getOrderId() + "]: " + resultDesc
                     + (dto.getAdminRemark() != null && !dto.getAdminRemark().isBlank() ? "，备注：" + dto.getAdminRemark() : ""));
             opLog.setRefId(complaint.getOrderId());
+            opLog.setIp(request.getRemoteAddr());
             operationLogService.save(opLog);
         }
 

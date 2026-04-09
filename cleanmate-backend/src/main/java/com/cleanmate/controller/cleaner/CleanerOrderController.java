@@ -353,6 +353,31 @@ public class CleanerOrderController {
                 page.getRecords(), page.getTotal(), page.getCurrent(), page.getSize()));
     }
 
+    /** 保洁员回复评价（每条评价只能回复一次） */
+    @PutMapping("/reviews/{reviewId}/reply")
+    public Result<Void> replyReview(@PathVariable Long reviewId,
+                                    @RequestBody java.util.Map<String, String> body,
+                                    Authentication auth) {
+        Long cleanerId = (Long) auth.getPrincipal();
+        OrderReview review = orderReviewService.getById(reviewId);
+        if (review == null || !review.getCleanerId().equals(cleanerId)) {
+            throw new com.cleanmate.exception.BusinessException("评价不存在或无权操作");
+        }
+        if (review.getReplyContent() != null) {
+            throw new com.cleanmate.exception.BusinessException("该评价已回复过");
+        }
+        String content = body.getOrDefault("replyContent", "").trim();
+        if (content.isBlank()) {
+            throw new com.cleanmate.exception.BusinessException("回复内容不能为空");
+        }
+        orderReviewService.lambdaUpdate()
+                .eq(OrderReview::getId, reviewId)
+                .set(OrderReview::getReplyContent, content)
+                .set(OrderReview::getRepliedAt, LocalDateTime.now())
+                .update();
+        return Result.success();
+    }
+
     /** 获取订单照片列表 */
     @GetMapping("/{orderId}/photos")
     public Result<List<ServicePhoto>> getPhotos(@PathVariable Long orderId, Authentication auth) {

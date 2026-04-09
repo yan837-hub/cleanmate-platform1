@@ -57,8 +57,9 @@ public class AdminDispatchController {
      * 触发自动派单
      */
     @PostMapping("/auto/{orderId}")
-    public Result<String> autoDispatch(@PathVariable Long orderId) {
-        Long cleanerId = orderService.autoDispatch(orderId);
+    public Result<String> autoDispatch(@PathVariable Long orderId, Authentication auth) {
+        Long adminId = (Long) auth.getPrincipal();
+        Long cleanerId = orderService.autoDispatch(orderId, adminId);
         if (cleanerId == null) {
             return Result.success("暂无可用保洁员，订单继续等待");
         }

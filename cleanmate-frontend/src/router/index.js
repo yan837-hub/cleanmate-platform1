@@ -74,6 +74,7 @@ const router = createRouter({
         { path: 'service-types', name: 'AdminServiceTypes', component: () => import('@/views/admin/ServiceTypes.vue') },
         { path: 'settings', name: 'AdminSettings', component: () => import('@/views/admin/SystemConfig.vue'), meta: { title: '系统参数配置' } },
         { path: 'operation-logs', name: 'AdminOperationLog', component: () => import('@/views/admin/OperationLog.vue'), meta: { title: '操作日志' } },
+        { path: 'abnormal-checkins', name: 'AdminAbnormalCheckins', component: () => import('@/views/admin/AbnormalCheckins.vue'), meta: { title: '异常签到' } },
       ],
     },
 

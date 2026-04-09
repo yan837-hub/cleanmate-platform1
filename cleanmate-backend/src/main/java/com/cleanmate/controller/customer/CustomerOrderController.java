@@ -16,6 +16,8 @@ import com.cleanmate.exception.ErrorCode;
 import com.cleanmate.entity.User;
 import com.cleanmate.enums.NotificationType;
 import com.cleanmate.entity.OrderReschedule;
+import com.cleanmate.entity.CleanerIncome;
+import com.cleanmate.service.ICleanerIncomeService;
 import com.cleanmate.service.ICleanerProfileService;
 import com.cleanmate.service.ICleanerTimeLockService;
 import com.cleanmate.service.IComplaintService;
@@ -59,6 +61,7 @@ public class CustomerOrderController {
     private final IPaymentRecordService paymentRecordService;
     private final IFeeDetailService feeDetailService;
     private final ISystemConfigService systemConfigService;
+    private final ICleanerIncomeService cleanerIncomeService;
 
     /** 提交预约订单 */
     @PostMapping
@@ -579,6 +582,14 @@ public class CustomerOrderController {
         orderService.updateById(order);
         orderService.logStatusChange(orderId, OrderStatus.PENDING_COMPLETE_CONFIRM.getCode(),
                 OrderStatus.COMPLETED.getCode(), customerId, "顾客确认完成");
+        // 结算保洁员收入：待结算 → 已结算
+        if (order.getCleanerId() != null) {
+            cleanerIncomeService.lambdaUpdate()
+                    .eq(CleanerIncome::getOrderId, orderId)
+                    .set(CleanerIncome::getStatus, 2)
+                    .set(CleanerIncome::getSettledAt, LocalDateTime.now())
+                    .update();
+        }
         // 通知保洁员：顾客已确认完成
         if (order.getCleanerId() != null) {
             notificationService.sendNotification(

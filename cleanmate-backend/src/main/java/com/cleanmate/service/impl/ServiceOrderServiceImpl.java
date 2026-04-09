@@ -359,7 +359,7 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long autoDispatch(Long orderId) {
+    public Long autoDispatch(Long orderId, Long operatorId) {
         ServiceOrder order = this.getById(orderId);
         if (order == null) throw new BusinessException(ErrorCode.ORDER_NOT_EXIST);
         if (!order.getStatus().equals(OrderStatus.PENDING_DISPATCH.getCode()) &&
@@ -525,9 +525,9 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                 "系统为您派送了一个新订单 #" + order.getOrderNo() + "，请在30分钟内确认接单",
                 orderId);
 
-        // 写操作日志（operatorId=0 表示系统自动操作）
+        // 写操作日志（operatorId=0 表示系统自动触发，有管理员操作时记录真实ID）
         OperationLog autoLog = new OperationLog();
-        autoLog.setOperatorId(0L);
+        autoLog.setOperatorId(operatorId != null ? operatorId : 0L);
         autoLog.setModule("派单");
         autoLog.setAction("自动派单[订单#" + order.getOrderNo() + "]: 派给保洁员id=" + best.cleanerId
                 + ", 评分=" + String.format("%.1f", best.totalScore));
@@ -1084,7 +1084,7 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         // 10. 异步触发自动派单
         final Long orderId = order.getId();
         CompletableFuture.runAsync(() -> {
-            try { autoDispatch(orderId); } catch (Exception ignored) {}
+            try { autoDispatch(orderId, null); } catch (Exception ignored) {}
         });
 
         Map<String, Object> result = new HashMap<>();

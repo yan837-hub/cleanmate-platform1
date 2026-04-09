@@ -5,16 +5,20 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cleanmate.common.PageResult;
 import com.cleanmate.common.Result;
 import com.cleanmate.dto.order.ExternalImportDTO;
+import com.cleanmate.entity.CheckinRecord;
 import com.cleanmate.entity.ServiceOrder;
 import com.cleanmate.enums.OrderStatus;
 import com.cleanmate.exception.BusinessException;
 import com.cleanmate.exception.ErrorCode;
+import com.cleanmate.service.ICheckinRecordService;
 import com.cleanmate.service.IServiceOrderService;
 import com.cleanmate.vo.order.OrderVO;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +31,7 @@ import java.util.Map;
 public class AdminOrderController {
 
     private final IServiceOrderService orderService;
+    private final ICheckinRecordService checkinRecordService;
 
     /**
      * 订单列表（支持按状态筛选、关键词搜索）
@@ -92,6 +97,44 @@ public class AdminOrderController {
                 .map(o -> orderService.getOrderVO(o.getId()))
                 .toList();
         return Result.success(PageResult.of(vos, page.getTotal(), page.getCurrent(), page.getSize()));
+    }
+
+    /**
+     * 异常签到列表（is_abnormal=1，支持 handled 过滤：0=未处理 1=已处理）
+     */
+    @GetMapping("/checkins/abnormal")
+    public Result<List<CheckinRecord>> listAbnormalCheckins(
+            @RequestParam(required = false) Integer handled) {
+        var query = checkinRecordService.lambdaQuery()
+                .eq(CheckinRecord::getIsAbnormal, 1);
+        if (handled != null) {
+            if (handled == 0) query.isNull(CheckinRecord::getHandledBy);
+            else              query.isNotNull(CheckinRecord::getHandledBy);
+        }
+        return Result.success(query.orderByDesc(CheckinRecord::getCheckinTime).list());
+    }
+
+    /**
+     * 管理员标记异常签到已处理
+     */
+    @PutMapping("/checkins/{id}/handle")
+    public Result<Void> handleAbnormalCheckin(@PathVariable Long id,
+                                              @RequestBody HandleCheckinDTO dto,
+                                              Authentication auth) {
+        CheckinRecord record = checkinRecordService.getById(id);
+        if (record == null) throw new BusinessException(ErrorCode.NOT_FOUND);
+        Long adminId = (Long) auth.getPrincipal();
+        checkinRecordService.lambdaUpdate()
+                .eq(CheckinRecord::getId, id)
+                .set(CheckinRecord::getHandledBy, adminId)
+                .set(CheckinRecord::getHandleRemark, dto.getRemark())
+                .update();
+        return Result.success();
+    }
+
+    @Data
+    static class HandleCheckinDTO {
+        private String remark;
     }
 
     /**

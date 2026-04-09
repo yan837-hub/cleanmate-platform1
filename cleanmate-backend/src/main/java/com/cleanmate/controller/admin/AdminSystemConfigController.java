@@ -5,6 +5,7 @@ import com.cleanmate.entity.OperationLog;
 import com.cleanmate.entity.SystemConfig;
 import com.cleanmate.service.IOperationLogService;
 import com.cleanmate.service.ISystemConfigService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -35,7 +36,8 @@ public class AdminSystemConfigController {
     @PutMapping("/{key}")
     public Result<Void> updateOne(@PathVariable String key,
                                   @RequestBody UpdateValueDTO dto,
-                                  Authentication auth) {
+                                  Authentication auth,
+                                  HttpServletRequest request) {
         SystemConfig cfg = configService.lambdaQuery()
                 .eq(SystemConfig::getConfigKey, key)
                 .one();
@@ -64,6 +66,7 @@ public class AdminSystemConfigController {
         log.setRefId(cfg.getId() != null ? cfg.getId().longValue() : null);
         log.setBeforeData(oldValue);
         log.setAfterData(newValue);
+        log.setIp(request.getRemoteAddr());
         operationLogService.save(log);
 
         return Result.success();

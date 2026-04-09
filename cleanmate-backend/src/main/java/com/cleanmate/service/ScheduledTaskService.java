@@ -1,8 +1,10 @@
 package com.cleanmate.service;
 
+import com.cleanmate.entity.CleanerIncome;
 import com.cleanmate.entity.DispatchRecord;
 import com.cleanmate.entity.ServiceOrder;
 import com.cleanmate.enums.OrderStatus;
+import com.cleanmate.service.ICleanerIncomeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,6 +26,7 @@ public class ScheduledTaskService {
 
     private final IServiceOrderService orderService;
     private final IDispatchRecordService dispatchRecordService;
+    private final ICleanerIncomeService cleanerIncomeService;
 
     /**
      * 每分钟检查：派单30min未响应 → 超时处理
@@ -77,6 +80,14 @@ public class ScheduledTaskService {
                     OrderStatus.PENDING_COMPLETE_CONFIRM.getCode(),
                     OrderStatus.COMPLETED.getCode(),
                     null, "超过48小时未确认，系统自动确认完成");
+            // 结算保洁员收入：待结算 → 已结算
+            if (order.getCleanerId() != null) {
+                cleanerIncomeService.lambdaUpdate()
+                        .eq(CleanerIncome::getOrderId, order.getId())
+                        .set(CleanerIncome::getStatus, 2)
+                        .set(CleanerIncome::getSettledAt, LocalDateTime.now())
+                        .update();
+            }
             log.info("订单[{}]48h自动确认完成", order.getId());
         }
     }

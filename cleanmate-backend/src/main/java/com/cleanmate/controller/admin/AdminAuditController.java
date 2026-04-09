@@ -16,6 +16,7 @@ import com.cleanmate.service.ICleaningCompanyService;
 import com.cleanmate.service.INotificationService;
 import com.cleanmate.service.IOperationLogService;
 import com.cleanmate.service.IUserService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -99,7 +100,8 @@ public class AdminAuditController {
     public Result<Void> auditCleaner(@PathVariable Long id,
                                      @RequestParam Integer auditStatus,
                                      @RequestParam(required = false) String remark,
-                                     Authentication auth) {
+                                     Authentication auth,
+                                     HttpServletRequest request) {
         if (auditStatus != 1 && auditStatus != 3) {
             throw new BusinessException(ErrorCode.PARAM_ERROR);
         }
@@ -120,6 +122,7 @@ public class AdminAuditController {
         opLog.setAction("保洁员审核[id=" + id + "]: " + (auditStatus == 1 ? "通过" : "拒绝")
                 + (remark != null && !remark.isBlank() ? "，备注：" + remark : ""));
         opLog.setRefId(id);
+        opLog.setIp(request.getRemoteAddr());
         operationLogService.save(opLog);
 
         String title = auditStatus == 1 ? "审核通过" : "审核未通过";
@@ -135,7 +138,8 @@ public class AdminAuditController {
     @PutMapping("/audit/cleaners/{userId}/status")
     public Result<Void> toggleCleanerStatus(@PathVariable Long userId,
                                             @RequestParam Integer status,
-                                            Authentication auth) {
+                                            Authentication auth,
+                                            HttpServletRequest request) {
         User user = userService.getById(userId);
         if (user == null) throw new BusinessException(ErrorCode.USER_NOT_EXIST);
         int oldStatus = user.getStatus();
@@ -149,6 +153,7 @@ public class AdminAuditController {
         opLog.setAction("保洁员账号状态变更[userId=" + userId + "]: " + oldStatus + "→" + status
                 + (status == 3 ? "（停用）" : "（启用）"));
         opLog.setRefId(userId);
+        opLog.setIp(request.getRemoteAddr());
         operationLogService.save(opLog);
 
         return Result.success();
@@ -228,7 +233,8 @@ public class AdminAuditController {
     public Result<Void> toggleCompanyStatus(@PathVariable Long id,
                                             @RequestParam Integer status,
                                             @RequestParam(required = false) String remark,
-                                            Authentication auth) {
+                                            Authentication auth,
+                                            HttpServletRequest request) {
         CleaningCompany company = companyService.getById(id);
         if (company == null) throw new BusinessException(ErrorCode.NOT_FOUND);
         int oldStatus = company.getStatus() != null ? company.getStatus() : 1;
@@ -258,6 +264,7 @@ public class AdminAuditController {
                 + (status == 3 ? "（停用）" : "（启用）")
                 + (remark != null && !remark.isBlank() ? "，备注：" + remark : ""));
         opLog.setRefId(id);
+        opLog.setIp(request.getRemoteAddr());
         operationLogService.save(opLog);
 
         return Result.success();
