@@ -261,12 +261,9 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                     latitude, longitude,
                     order.getLatitude().doubleValue(), order.getLongitude().doubleValue());
             isAbnormal = distanceM > maxCheckinDistM ? 1 : 0;
-            if (isAbnormal == 1) {
-                throw new BusinessException(1004,
-                        "签到失败：当前位置距服务地址偏差 " + distanceM + " 米，超出允许范围 " + maxCheckinDistM + " 米");
-            }
         }
 
+        // 无论是否异常，签到均放行，订单正常推进
         CheckinRecord record = new CheckinRecord();
         record.setOrderId(orderId);
         record.setCleanerId(cleanerId);
@@ -276,6 +273,21 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         record.setDistanceM(distanceM);
         record.setIsAbnormal(isAbnormal);
         checkinRecordService.save(record);
+
+        // 位置异常时通知管理员后置审查（不阻断流程）
+        if (isAbnormal == 1) {
+            String alertMsg = "订单 #" + order.getOrderNo() + " 保洁员签到位置偏差 " + distanceM + " 米，已放行签到，请前往【异常签到】页面核查。";
+            try {
+                userService.lambdaQuery().eq(User::getRole, 3).list()
+                        .forEach(admin -> notificationService.sendNotification(
+                                admin.getId(),
+                                NotificationType.ABNORMAL_CHECKIN.getCode(),
+                                "保洁员签到位置异常",
+                                alertMsg,
+                                orderId));
+            } catch (Exception ignored) {
+            }
+        }
 
         order.setStatus(OrderStatus.IN_SERVICE.getCode());
         this.updateById(order);
@@ -500,7 +512,8 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         DispatchRecord dispatch = new DispatchRecord();
         dispatch.setOrderId(orderId);
         dispatch.setCleanerId(best.cleanerId);
-        dispatch.setDispatchType(1); // 1=系统自动
+        dispatch.setDispatchType(operatorId != null ? 2 : 1); // 1=系统自动 2=手动派单
+        dispatch.setOperatorId(operatorId);
         dispatch.setStatus(1);       // 1=待响应
         dispatch.setDistanceKm(new BigDecimal(String.valueOf(best.distanceKm)).setScale(2, RoundingMode.HALF_UP));
         dispatch.setScore(new BigDecimal(String.valueOf(best.totalScore)).setScale(2, RoundingMode.HALF_UP));

@@ -368,7 +368,9 @@ async function doAccept(orderId) {
 }
 
 async function doReject(orderId) {
-  await ElMessageBox.confirm('确认拒绝此派单？订单将退回待派单池', '拒绝接单', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm('确认拒绝此派单？订单将退回待派单池', '拒绝接单', { type: 'warning' })
+  } catch { return }
   actionLoadingId.value = orderId + '_reject'
   try {
     await rejectOrder(orderId)

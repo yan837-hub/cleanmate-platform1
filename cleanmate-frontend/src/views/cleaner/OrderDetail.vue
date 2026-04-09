@@ -195,6 +195,7 @@ const orderId = route.params.id
 
 const order = ref(null)
 const cleanerCancelHours = ref(4) // 默认4小时，加载后从后端覆盖
+const checkinMaxDistM = ref(500)  // 默认500m，加载后从后端覆盖
 const loading = ref(false)
 const actionLoading = ref(false)
 const routeHint = ref({ hasPrevOrder: false })
@@ -271,24 +272,32 @@ async function doAccept() {
 }
 
 async function doCancel() {
-  await ElMessageBox.confirm(
-    '确认取消此订单？取消后订单将退回待派单池，仅限距预约时间4小时前操作',
-    '取消订单', { type: 'warning', confirmButtonText: '确认取消', confirmButtonClass: 'el-button--danger' }
-  )
+  try {
+    await ElMessageBox.confirm(
+      '确认取消此订单？取消后订单将退回待派单池，仅限距预约时间4小时前操作',
+      '取消订单', { type: 'warning', confirmButtonText: '确认取消', confirmButtonClass: 'el-button--danger' }
+    )
+  } catch {
+    return // 用户点了取消，不做任何操作
+  }
   actionLoading.value = true
   try {
     await cleanerCancelOrder(orderId, '')
     ElMessage.success('已取消，订单已退回待派单池')
     await loadOrder()
-  } catch {
-    // 错误已由 request 拦截器统一弹出，此处不重复提示
+  } catch (e) {
+    ElMessage.error(e?.message || '取消失败')
   } finally {
     actionLoading.value = false
   }
 }
 
 async function doReject() {
-  await ElMessageBox.confirm('确认拒绝此订单？订单将退回待派单池', '拒绝接单', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm('确认拒绝此订单？订单将退回待派单池', '拒绝接单', { type: 'warning' })
+  } catch {
+    return
+  }
   actionLoading.value = true
   try {
     await rejectOrder(orderId)
@@ -319,9 +328,10 @@ async function doCheckin() {
       pos.latitude, pos.longitude,
       Number(order.value.latitude), Number(order.value.longitude)
     )
-    const color = d > 500 ? '#ef4444' : '#16a34a'
+    const limit = checkinMaxDistM.value
+    const color = d > limit ? '#ef4444' : '#16a34a'
     distTip = `<br/><span style="color:${color};font-weight:600">距服务地址约 ${d} 米</span>`
-    if (d > 500) distTip += `<br/><span style="color:#ef4444;font-size:12px">偏差较大，签到后系统将标记为异常</span>`
+    if (d > limit) distTip += `<br/><span style="color:#ef4444;font-size:12px">偏差较大，签到成功后将标记为异常供管理员核查</span>`
   }
 
   try {
@@ -380,14 +390,16 @@ async function handleUpload({ file }) {
 }
 
 async function doComplete() {
-  await ElMessageBox.confirm(`确认提交完工？实际服务时长：${actualDuration.value} 分钟`, '完工确认', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm(`确认提交完工？实际服务时长：${actualDuration.value} 分钟`, '完工确认', { type: 'warning' })
+  } catch { return }
   actionLoading.value = true
   try {
     await reportComplete(orderId, actualDuration.value)
     ElMessage.success('完工上报成功，等待顾客确认')
     await loadOrder()
-  } catch {
-    ElMessage.error('提交失败')
+  } catch (e) {
+    ElMessage.error(e?.message || '提交失败')
   } finally {
     actionLoading.value = false
   }
@@ -397,10 +409,12 @@ function openNavigation() { window.open(routeHint.value.mapUrl, '_blank') }
 
 async function doApproveReschedule() {
   if (!pendingReschedule.value) return
-  await ElMessageBox.confirm(
-    `确认同意将预约时间改为 ${formatTime(pendingReschedule.value.newTime)}？`,
-    '同意改期', { type: 'warning' }
-  )
+  try {
+    await ElMessageBox.confirm(
+      `确认同意将预约时间改为 ${formatTime(pendingReschedule.value.newTime)}？`,
+      '同意改期', { type: 'warning' }
+    )
+  } catch { return }
   actionLoading.value = true
   try {
     await handleReschedule(pendingReschedule.value.id, true)
@@ -451,8 +465,9 @@ function resultTagType(r) { return RESULT_MAP[r]?.type ?? '' }
 onMounted(async () => {
   loadOrder()
   try {
-    const cfg = await request.get('/public/config', { params: { keys: 'cleaner_cancel_hours' } })
+    const cfg = await request.get('/public/config', { params: { keys: 'cleaner_cancel_hours,checkin_max_distance_m' } })
     if (cfg?.cleaner_cancel_hours) cleanerCancelHours.value = Number(cfg.cleaner_cancel_hours)
+    if (cfg?.checkin_max_distance_m) checkinMaxDistM.value = Number(cfg.checkin_max_distance_m)
   } catch { /* 保持默认值 */ }
 })
 </script>

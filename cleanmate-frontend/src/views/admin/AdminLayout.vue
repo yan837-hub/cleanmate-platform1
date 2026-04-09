@@ -64,7 +64,7 @@
 
         <el-menu-item index="/admin/abnormal-checkins">
           <el-icon><Warning /></el-icon>
-          <span>异常签到</span>
+          <span>异常管理</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -99,7 +99,7 @@
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
-import { User, SetUp, Setting, Document, Warning } from '@element-plus/icons-vue'
+import { User, Setting, Document, Warning } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()

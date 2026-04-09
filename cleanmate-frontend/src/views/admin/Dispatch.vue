@@ -169,9 +169,12 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Refresh, Clock, Location, Star, List } from '@element-plus/icons-vue'
 import { getPendingOrders, getDispatchCandidates, manualDispatch, autoDispatch } from '@/api/admin'
+
+const route = useRoute()
 
 // ── 左侧状态 ──────────────────────────────────────────
 const orders      = ref([])
@@ -294,9 +297,15 @@ async function doManualDispatch() {
   }
 }
 
-onMounted(() => {
-  loadOrders()
+onMounted(async () => {
+  await loadOrders()
   pollTimer = setInterval(loadOrders, 30000)
+  // 从通知跳转过来时，自动选中对应订单
+  const targetId = route.query.orderId ? Number(route.query.orderId) : null
+  if (targetId) {
+    const target = orders.value.find(o => o.id === targetId)
+    if (target) selectOrder(target)
+  }
 })
 onUnmounted(() => clearInterval(pollTimer))
 </script>

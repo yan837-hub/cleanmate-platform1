@@ -30,7 +30,7 @@ public class CheckinRecord implements Serializable {
     /** 与订单地址偏差距离（米） */
     private Integer distanceM;
 
-    /** 是否位置异常（偏差>500m）：1=是 */
+    /** 是否位置异常（偏差超过系统参数 checkin_max_distance_m）：1=是 */
     private Integer isAbnormal;
 
     private Long handledBy;

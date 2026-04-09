@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
 import { getToken, removeToken } from './auth'
 import router from '@/router'
 
@@ -34,7 +33,7 @@ request.interceptors.response.use(
       router.push('/login')
       return Promise.reject(new Error(res.message))
     }
-    ElMessage.error(res.message || '请求失败')
+    // 其他业务错误：只 reject，由调用方 catch 决定如何提示，避免双重弹框
     return Promise.reject(new Error(res.message))
   },
   (error) => {
@@ -42,12 +41,14 @@ request.interceptors.response.use(
     if (status === 401) {
       removeToken()
       router.push('/login')
-    } else if (status === 403) {
-      ElMessage.error('无权限访问')
+      return Promise.reject(error)
+    }
+    // HTTP 错误：把状态码对应的描述挂到 error.message，由调用方 catch 统一展示
+    if (status === 403) {
+      error.message = '无权限访问'
     } else if (status === 500) {
-      ElMessage.error('服务器内部错误')
-    } else {
-      ElMessage.error(error.message || '网络请求失败')
+      const serverMsg = error.response?.data?.message
+      error.message = serverMsg || '服务器内部错误'
     }
     return Promise.reject(error)
   }

@@ -18,7 +18,8 @@ public enum NotificationType {
     TIMEOUT_ALERT(8, "超时告警"),
     ORDER_REMINDER(9, "出行提醒"),
     RESCHEDULE_REQUEST(10, "改期申请"),
-    RESCHEDULE_RESULT(11, "改期结果");
+    RESCHEDULE_RESULT(11, "改期结果"),
+    ABNORMAL_CHECKIN(12, "异常签到告警");
 
     private final Integer code;
     private final String desc;
