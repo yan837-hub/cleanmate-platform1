@@ -1,8 +1,12 @@
 package com.cleanmate.task;
 
 import com.cleanmate.entity.ServiceOrder;
+import com.cleanmate.entity.User;
+import com.cleanmate.enums.NotificationType;
 import com.cleanmate.enums.OrderStatus;
+import com.cleanmate.service.INotificationService;
 import com.cleanmate.service.IServiceOrderService;
+import com.cleanmate.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,6 +24,8 @@ import java.util.List;
 public class OrderTimeoutTask {
 
     private final IServiceOrderService orderService;
+    private final IUserService userService;
+    private final INotificationService notificationService;
 
     /**
      * 每10分钟检查一次：距预约时间约1小时的已接单订单，推送出行提醒给保洁员
@@ -58,6 +64,20 @@ public class OrderTimeoutTask {
                         null,
                         "保洁员超时未签到（预约时间 " + order.getAppointTime() + "），系统自动取消"
                 );
+
+                // 通知管理员：保洁员超时未签到
+                String msg = "订单 #" + order.getOrderNo() + " 已自动取消，原因：保洁员超时未签到。请尽快核查。";
+                try {
+                    userService.lambdaQuery().eq(User::getRole, 3).list()
+                            .forEach(admin -> notificationService.sendNotification(
+                                    admin.getId(),
+                                    NotificationType.TIMEOUT_ALERT.getCode(),
+                                    "保洁员未到场告警",
+                                    msg,
+                                    order.getId()));
+                } catch (Exception ignored) {
+                }
+
                 log.info("[定时任务] 订单 {} 已自动取消（超时未签到）", order.getOrderNo());
             } catch (Exception e) {
                 log.error("[定时任务] 自动取消订单 {} 失败", order.getOrderNo(), e);

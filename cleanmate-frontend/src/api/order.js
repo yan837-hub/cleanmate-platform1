@@ -109,6 +109,11 @@ export function getOrderPhotos(orderId) {
   return request.get(`/cleaner/orders/${orderId}/photos`)
 }
 
+// 保洁员：我的评价列表
+export function getMyReviews(params) {
+  return request.get('/cleaner/orders/reviews', { params })
+}
+
 // 保洁员：接单（系统/管理员派单）
 export function acceptOrder(orderId) {
   return request.post(`/cleaner/orders/${orderId}/accept`)
@@ -220,9 +225,4 @@ export function payFinal(orderId) {
 // 支付全额（status IN(5,6), pay_status=0）
 export function payFull(orderId) {
   return request.post(`/customer/orders/${orderId}/pay-full`)
-}
-
-// 查询订单支付记录
-export function getPaymentRecords(orderId) {
-  return request.get(`/customer/orders/${orderId}/payment-records`)
 }

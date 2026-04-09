@@ -10,9 +10,11 @@ import com.cleanmate.entity.User;
 import com.cleanmate.enums.NotificationType;
 import com.cleanmate.exception.BusinessException;
 import com.cleanmate.exception.ErrorCode;
+import com.cleanmate.entity.OperationLog;
 import com.cleanmate.service.ICleanerProfileService;
 import com.cleanmate.service.ICleaningCompanyService;
 import com.cleanmate.service.INotificationService;
+import com.cleanmate.service.IOperationLogService;
 import com.cleanmate.service.IUserService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,7 @@ public class AdminAuditController {
     private final ICleaningCompanyService companyService;
     private final IUserService userService;
     private final INotificationService notificationService;
+    private final IOperationLogService operationLogService;
 
     // ============================================================
     // 保洁员管理
@@ -111,6 +114,14 @@ public class AdminAuditController {
         profile.setAuditedAt(LocalDateTime.now());
         cleanerProfileService.updateById(profile);
 
+        OperationLog opLog = new OperationLog();
+        opLog.setOperatorId(adminId);
+        opLog.setModule("审核");
+        opLog.setAction("保洁员审核[id=" + id + "]: " + (auditStatus == 1 ? "通过" : "拒绝")
+                + (remark != null && !remark.isBlank() ? "，备注：" + remark : ""));
+        opLog.setRefId(id);
+        operationLogService.save(opLog);
+
         String title = auditStatus == 1 ? "审核通过" : "审核未通过";
         String content = auditStatus == 1
                 ? "恭喜您！您的保洁员资质审核已通过，现在可以开始接单了"
@@ -123,11 +134,23 @@ public class AdminAuditController {
     /** 启用/禁用保洁员账号（修改 user.status） */
     @PutMapping("/audit/cleaners/{userId}/status")
     public Result<Void> toggleCleanerStatus(@PathVariable Long userId,
-                                            @RequestParam Integer status) {
+                                            @RequestParam Integer status,
+                                            Authentication auth) {
         User user = userService.getById(userId);
         if (user == null) throw new BusinessException(ErrorCode.USER_NOT_EXIST);
+        int oldStatus = user.getStatus();
         user.setStatus(status);
         userService.updateById(user);
+
+        Long adminId = (Long) auth.getPrincipal();
+        OperationLog opLog = new OperationLog();
+        opLog.setOperatorId(adminId);
+        opLog.setModule("封禁");
+        opLog.setAction("保洁员账号状态变更[userId=" + userId + "]: " + oldStatus + "→" + status
+                + (status == 3 ? "（停用）" : "（启用）"));
+        opLog.setRefId(userId);
+        operationLogService.save(opLog);
+
         return Result.success();
     }
 
@@ -208,6 +231,7 @@ public class AdminAuditController {
                                             Authentication auth) {
         CleaningCompany company = companyService.getById(id);
         if (company == null) throw new BusinessException(ErrorCode.NOT_FOUND);
+        int oldStatus = company.getStatus() != null ? company.getStatus() : 1;
         company.setStatus(status);
         if (remark != null) company.setAuditRemark(remark);
         companyService.updateById(company);
@@ -225,6 +249,16 @@ public class AdminAuditController {
                 }
             });
         }
+
+        Long adminId = (Long) auth.getPrincipal();
+        OperationLog opLog = new OperationLog();
+        opLog.setOperatorId(adminId);
+        opLog.setModule("封禁");
+        opLog.setAction("保洁公司状态变更[id=" + id + ", " + company.getName() + "]: " + oldStatus + "→" + status
+                + (status == 3 ? "（停用）" : "（启用）")
+                + (remark != null && !remark.isBlank() ? "，备注：" + remark : ""));
+        opLog.setRefId(id);
+        operationLogService.save(opLog);
 
         return Result.success();
     }

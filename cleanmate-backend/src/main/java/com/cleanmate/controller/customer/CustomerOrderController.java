@@ -177,12 +177,6 @@ public class CustomerOrderController {
         return Result.success();
     }
 
-    /** 兼容旧路径（已废弃，请使用 /report-absence） */
-    @PutMapping("/{orderId}/no-show")
-    public Result<Void> reportNoShow(@PathVariable Long orderId, Authentication auth) {
-        return reportAbsence(orderId, auth);
-    }
-
     /** 查询订单评价（已有则返回，未评价返回 null） */
     @GetMapping("/{orderId}/review")
     public Result<OrderReview> getReview(@PathVariable Long orderId, Authentication auth) {

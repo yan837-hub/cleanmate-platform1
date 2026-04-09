@@ -10,6 +10,7 @@ import com.cleanmate.entity.ServiceOrder;
 import com.cleanmate.entity.User;
 import com.cleanmate.enums.NotificationType;
 import com.cleanmate.enums.OrderStatus;
+import com.cleanmate.entity.OperationLog;
 import com.cleanmate.service.*;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class AdminComplaintController {
     private final ICleanerTimeLockService cleanerTimeLockService;
     private final INotificationService    notificationService;
     private final IUserService            userService;
+    private final IOperationLogService    operationLogService;
 
     /** 投诉列表（分页，含顾客/保洁员昵称和订单金额） */
     @GetMapping
@@ -92,10 +94,29 @@ public class AdminComplaintController {
         if (dto.getAdminRemark() != null) complaint.setAdminRemark(dto.getAdminRemark());
         if (dto.getRefundAmount() != null) complaint.setRefundAmount(dto.getRefundAmount());
 
+        if (dto.getStatus() == 3 && complaint.getResult() != null
+                && complaint.getResult() == 3 && dto.getNewAppointTime() == null) {
+            return Result.error(400, "免费重做时必须指定新预约时间");
+        }
         if (dto.getStatus() == 3 && complaint.getResult() != null) {
             complaint.setHandledBy(adminId);
             complaint.setHandledAt(LocalDateTime.now());
-            processOrderOnClose(complaint, adminId);
+            processOrderOnClose(complaint, adminId, dto.getNewAppointTime());
+
+            String resultDesc = switch (complaint.getResult()) {
+                case 1 -> "全额退款";
+                case 2 -> "驳回投诉";
+                case 3 -> "免费重做";
+                case 4 -> "部分退款¥" + (complaint.getRefundAmount() != null ? complaint.getRefundAmount() : "0");
+                default -> "未知";
+            };
+            OperationLog opLog = new OperationLog();
+            opLog.setOperatorId(adminId);
+            opLog.setModule("投诉处理");
+            opLog.setAction("投诉结案[complaintId=" + id + ", orderId=" + complaint.getOrderId() + "]: " + resultDesc
+                    + (dto.getAdminRemark() != null && !dto.getAdminRemark().isBlank() ? "，备注：" + dto.getAdminRemark() : ""));
+            opLog.setRefId(complaint.getOrderId());
+            operationLogService.save(opLog);
         }
 
         complaintService.updateById(complaint);
@@ -107,9 +128,9 @@ public class AdminComplaintController {
      * result=1 全额退款：fee归零，order.status→6
      * result=2 驳回投诉：fee不变，order.status→6
      * result=3 免费重做：fee归零，清除保洁员，释放time_lock，order.status→1
-     * result=4 部分退款：fee=refundAmount，order.status→6
+     * result=4 部分退款：fee=originalFee-refundAmount，order.status→6
      */
-    private void processOrderOnClose(Complaint complaint, Long adminId) {
+    private void processOrderOnClose(Complaint complaint, Long adminId, java.time.LocalDateTime newAppointTime) {
         ServiceOrder order = orderService.getById(complaint.getOrderId());
         if (order == null || order.getStatus() != 7) return;
 
@@ -141,9 +162,11 @@ public class AdminComplaintController {
             case 4 -> {
                 BigDecimal refund = complaint.getRefundAmount() != null
                         ? complaint.getRefundAmount() : BigDecimal.ZERO;
-                order.setActualFee(refund);
+                BigDecimal original = order.getActualFee() != null ? order.getActualFee() : order.getEstimateFee();
+                BigDecimal remaining = original.subtract(refund).max(BigDecimal.ZERO).setScale(2, java.math.RoundingMode.HALF_UP);
+                order.setActualFee(remaining);
                 order.setStatus(OrderStatus.COMPLETED.getCode());
-                syncFeeDetail(order.getId(), refund);
+                syncFeeDetail(order.getId(), remaining);
                 orderService.updateById(order);
                 orderService.logStatusChange(order.getId(), oldStatus,
                         OrderStatus.COMPLETED.getCode(), adminId,
@@ -168,6 +191,7 @@ public class AdminComplaintController {
                         .set(ServiceOrder::getCleanerId, null)
                         .set(ServiceOrder::getCompletedAt, null)
                         .set(ServiceOrder::getAutoConfirmAt, null)
+                        .set(newAppointTime != null, ServiceOrder::getAppointTime, newAppointTime)
                         .update();
                 cleanerTimeLockService.lambdaUpdate()
                         .eq(com.cleanmate.entity.CleanerTimeLock::getOrderId, order.getId())
@@ -213,7 +237,7 @@ public class AdminComplaintController {
         ServiceOrder order = orderService.getById(complaint.getOrderId());
         if (order == null) return Result.error("关联订单不存在");
         if (order.getStatus() != 7) return Result.success();
-        processOrderOnClose(complaint, (Long) auth.getPrincipal());
+        processOrderOnClose(complaint, (Long) auth.getPrincipal(), null);
         return Result.success();
     }
 
@@ -226,5 +250,7 @@ public class AdminComplaintController {
         private String adminRemark;
         /** result=4 时必填：退款金额 */
         private BigDecimal refundAmount;
+        /** result=3 免费重做时必填：新预约时间 */
+        private java.time.LocalDateTime newAppointTime;
     }
 }

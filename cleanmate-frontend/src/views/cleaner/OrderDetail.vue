@@ -10,7 +10,11 @@
       <el-descriptions-item label="服务类型">{{ order.serviceTypeName }}</el-descriptions-item>
       <el-descriptions-item label="预约时间">{{ formatTime(order.appointTime) }}</el-descriptions-item>
       <el-descriptions-item label="服务地址" :span="2">{{ order.addressSnapshot }}</el-descriptions-item>
-      <el-descriptions-item label="预约时长">{{ order.planDuration }} 分钟</el-descriptions-item>
+      <el-descriptions-item label="预约时长">
+        <span v-if="order.priceMode === 1 && order.planDuration">{{ order.planDuration }} 分钟</span>
+        <span v-else-if="order.priceMode === 2">按面积计费</span>
+        <span v-else>固定套餐</span>
+      </el-descriptions-item>
       <el-descriptions-item label="预估金额">¥{{ order.estimateFee }}</el-descriptions-item>
       <el-descriptions-item v-if="order.actualDuration" label="实际时长">{{ order.actualDuration }} 分钟</el-descriptions-item>
       <el-descriptions-item v-if="order.actualFee" label="实际金额">¥{{ order.actualFee }}</el-descriptions-item>
@@ -74,7 +78,7 @@
 
         <div style="margin-bottom:8px;font-weight:bold">签到打卡</div>
         <el-alert type="info" :closable="false" style="margin-bottom:12px"
-          :description="`签到时间窗口：${formatDate(checkinWindowStart)} ~ ${formatDate(checkinWindowEnd)}（预约时间前1小时至后2小时）`" />
+          :description="`签到时间窗口：${formatDate(checkinWindowStart)} ~ ${formatDate(checkinWindowEnd)}（预约时间前15分钟至服务结束）`" />
         <div style="display:flex;gap:12px;align-items:center">
           <el-button type="primary" :loading="actionLoading" @click="doCheckin"
             :disabled="!canCheckin">
@@ -196,17 +200,18 @@ const actionLoading = ref(false)
 const routeHint = ref({ hasPrevOrder: false })
 const pendingReschedule = ref(null)
 
-// 签到窗口：预约时间前1小时 ~ 后2小时（返回 Date 对象，避免 toISOString 丢失时区）
+// 签到窗口：预约时间前15分钟 ~ 预约时间 + 服务时长
 const checkinWindowStart = computed(() => {
   if (!order.value?.appointTime) return null
   const t = new Date(order.value.appointTime)
-  t.setHours(t.getHours() - 1)
+  t.setMinutes(t.getMinutes() - 15)
   return t
 })
 const checkinWindowEnd = computed(() => {
   if (!order.value?.appointTime) return null
   const t = new Date(order.value.appointTime)
-  t.setHours(t.getHours() + 2)
+  const duration = order.value.serviceDuration ?? 60
+  t.setMinutes(t.getMinutes() + duration)
   return t
 })
 const canCheckin = computed(() => {

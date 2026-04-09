@@ -79,8 +79,9 @@ public class AdminOperationLogController {
             row.put("createdAt", log.getCreatedAt());
 
             User op = log.getOperatorId() != null ? userMap.get(log.getOperatorId()) : null;
-            row.put("operatorNickname", op != null ? op.getNickname() : "—");
-            row.put("operatorPhone",    op != null ? op.getPhone()    : "—");
+            boolean isSystem = Long.valueOf(0L).equals(log.getOperatorId());
+            row.put("operatorNickname", isSystem ? "系统自动" : (op != null ? op.getNickname() : "—"));
+            row.put("operatorPhone",    isSystem ? "—"       : (op != null ? op.getPhone()    : "—"));
 
             return row;
         }).collect(Collectors.toList());

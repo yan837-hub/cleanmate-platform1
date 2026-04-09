@@ -57,8 +57,10 @@ public class OrderVO {
 
     /** 投诉状态（仅 status=7 时填充）：1=待处理 2=处理中 3=已结案 */
     private Integer complaintStatus;
-    /** 投诉判定结果：1=全额退款 2=驳回 3=免费重做 */
+    /** 投诉判定结果：1=全额退款 2=驳回 3=免费重做 4=部分退款 */
     private Integer complaintResult;
+    /** 部分退款金额（complaintResult=4 时有值：= estimateFee - actualFee） */
+    private BigDecimal refundAmount;
 
     /** 抢单池专用：保洁员与订单地址的距离（公里） */
     private Double distanceKm;

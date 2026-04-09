@@ -183,6 +183,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getAdminOrders, getAdminOrderDetail, autoDispatch,
@@ -388,10 +389,14 @@ async function submitManual() {
   }
 }
 
-onMounted(() => {
-  load()
-  // 预加载超时无人接单数量，让角标在进入页面时即可显示
-  // 不再预拉取，点进 Tab 时实时加载即可
+const route = useRoute()
+
+onMounted(async () => {
+  await load()
+  const openId = route.query.openId
+  if (openId) {
+    openDetail({ id: Number(openId) })
+  }
 })
 </script>
 

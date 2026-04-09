@@ -44,11 +44,6 @@ export function toggleCleanerStatus(userId, status) {
   })
 }
 
-// 待审核公司列表
-export function getPendingCompanies(params) {
-  return request.get('/admin/audit/companies', { params })
-}
-
 // 待处理订单池（status=1 待派单 + status=2 超时待处理）
 export function getPendingOrders(params) {
   return request.get('/admin/dispatch/pending', { params })
@@ -114,6 +109,15 @@ export function toggleCompanyStatus(id, status, remark) {
 // 超时无人接单的自动取消订单列表
 export function getExpiredUnacceptedOrders(params) {
   return request.get('/admin/orders/expired-unaccepted', { params })
+}
+
+// 异常通知（管理员）
+export function getAdminNotifications(params) {
+  return request.get('/admin/notifications', { params })
+}
+
+export function markAdminNotificationRead(id) {
+  return request.put(`/admin/notifications/${id}/read`)
 }
 
 // 管理员手动录入订单（source=3）

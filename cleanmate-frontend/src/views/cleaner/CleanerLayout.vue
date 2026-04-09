@@ -13,6 +13,7 @@
           </el-menu-item>
           <el-menu-item index="/cleaner/schedule">档期管理</el-menu-item>
           <el-menu-item index="/cleaner/income">收入明细</el-menu-item>
+          <el-menu-item index="/cleaner/reviews">我的评价</el-menu-item>
         </el-menu>
         <div class="header-right">
           <!-- 消息铃铛 -->

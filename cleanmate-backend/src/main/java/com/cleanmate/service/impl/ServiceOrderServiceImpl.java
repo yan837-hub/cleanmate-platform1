@@ -238,13 +238,14 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         if (checkinUser == null || checkinUser.getStatus() != 1)
             throw new BusinessException("账号已被禁用");
 
-        // 签到时间窗口校验：预约时间前1小时 ~ 预约时间后2小时
+        // 签到时间窗口校验：预约时间前15分钟 ~ 预约时间 + 服务时长（清洁结束时刻）
         LocalDateTime appointTime = order.getAppointTime();
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(appointTime.minusHours(1))) {
+        int durationMinutes = order.getPlanDuration() != null ? order.getPlanDuration() : 60;
+        if (now.isBefore(appointTime.minusMinutes(15))) {
             throw new BusinessException(ErrorCode.CHECKIN_TOO_EARLY);
         }
-        if (now.isAfter(appointTime.plusHours(2))) {
+        if (now.isAfter(appointTime.plusMinutes(durationMinutes))) {
             throw new BusinessException(ErrorCode.CHECKIN_TOO_LATE);
         }
 
@@ -361,8 +362,16 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
     public Long autoDispatch(Long orderId) {
         ServiceOrder order = this.getById(orderId);
         if (order == null) throw new BusinessException(ErrorCode.ORDER_NOT_EXIST);
-        if (!order.getStatus().equals(OrderStatus.PENDING_DISPATCH.getCode()))
-            throw new BusinessException(ErrorCode.ORDER_STATUS_ERROR);
+        if (!order.getStatus().equals(OrderStatus.PENDING_DISPATCH.getCode()) &&
+            !order.getStatus().equals(OrderStatus.DISPATCHED_PENDING_CONFIRM.getCode())) {
+            throw new BusinessException("订单状态为【" + OrderStatus.of(order.getStatus()).getDesc() + "】，无法派单");
+        }
+        // 若已派单但保洁员超时未确认，先将状态退回待派单再重新派
+        if (order.getStatus().equals(OrderStatus.DISPATCHED_PENDING_CONFIRM.getCode())) {
+            order.setStatus(OrderStatus.PENDING_DISPATCH.getCode());
+            order.setCleanerId(null);
+            this.updateById(order);
+        }
 
         // 从系统参数读取派单配置（无记录时使用默认值）
         SystemConfig maxDistCfg = systemConfigService.lambdaQuery()
@@ -515,6 +524,16 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                 "您有新订单待确认",
                 "系统为您派送了一个新订单 #" + order.getOrderNo() + "，请在30分钟内确认接单",
                 orderId);
+
+        // 写操作日志（operatorId=0 表示系统自动操作）
+        OperationLog autoLog = new OperationLog();
+        autoLog.setOperatorId(0L);
+        autoLog.setModule("派单");
+        autoLog.setAction("自动派单[订单#" + order.getOrderNo() + "]: 派给保洁员id=" + best.cleanerId
+                + ", 评分=" + String.format("%.1f", best.totalScore));
+        autoLog.setRefId(orderId);
+        autoLog.setAfterData("cleanerId=" + best.cleanerId);
+        operationLogService.save(autoLog);
 
         return best.cleanerId;
     }
@@ -751,6 +770,13 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
             if (complaint != null) {
                 vo.setComplaintStatus(complaint.getStatus());
                 vo.setComplaintResult(complaint.getResult());
+                // 部分退款：退款金额 = estimateFee - actualFee（后端已将 actualFee 设为实付金额）
+                if (complaint.getResult() != null && complaint.getResult() == 4
+                        && vo.getEstimateFee() != null && vo.getActualFee() != null) {
+                    vo.setRefundAmount(vo.getEstimateFee().subtract(vo.getActualFee())
+                            .max(java.math.BigDecimal.ZERO)
+                            .setScale(2, java.math.RoundingMode.HALF_UP));
+                }
             }
         }
 

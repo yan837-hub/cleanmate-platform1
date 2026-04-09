@@ -8,10 +8,6 @@ export function addAddress(data) {
   return request.post('/customer/addresses', data)
 }
 
-export function updateAddress(id, data) {
-  return request.put(`/customer/addresses/${id}`, data)
-}
-
 export function deleteAddress(id) {
   return request.delete(`/customer/addresses/${id}`)
 }

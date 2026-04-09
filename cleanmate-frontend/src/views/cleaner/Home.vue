@@ -124,7 +124,12 @@
     <!-- 统计卡片 -->
     <el-row :gutter="20" style="margin-top: 8px" v-loading="statsLoading">
       <el-col :span="6" v-for="stat in statCards" :key="stat.label">
-        <div class="stat-card" :style="{ background: stat.bg }">
+        <div
+          class="stat-card"
+          :class="{ 'stat-card--clickable': stat.route }"
+          :style="{ background: stat.bg }"
+          @click="stat.route && $router.push(stat.route)"
+        >
           <div class="stat-icon-wrap" :style="{ background: stat.iconBg }">
             <el-icon :size="22" :color="stat.color"><component :is="stat.icon" /></el-icon>
           </div>
@@ -309,10 +314,10 @@ async function loadAccountStatus() {
 }
 
 const statCards = computed(() => [
-  { label: '今日订单', value: stats.value.todayOrders,       icon: 'Calendar', color: '#10b981', bg: '#fff', iconBg: 'rgba(16,185,129,.1)' },
-  { label: '待接单',   value: stats.value.pendingDispatch,   icon: 'Bell',     color: '#f59e0b', bg: '#fff', iconBg: 'rgba(245,158,11,.1)' },
-  { label: '本月完成', value: stats.value.monthlyCompleted,  icon: 'Check',    color: '#14b8a6', bg: '#fff', iconBg: 'rgba(20,184,166,.1)' },
-  { label: '本月收入', value: '¥' + (stats.value.monthlyIncome ?? 0), icon: 'Wallet', color: '#0ea5e9', bg: '#fff', iconBg: 'rgba(14,165,233,.1)' },
+  { label: '今日订单', value: stats.value.todayOrders,       icon: 'Calendar', color: '#10b981', bg: '#fff', iconBg: 'rgba(16,185,129,.1)', route: '/cleaner/orders' },
+  { label: '待接单',   value: stats.value.pendingDispatch,   icon: 'Bell',     color: '#f59e0b', bg: '#fff', iconBg: 'rgba(245,158,11,.1)', route: '/cleaner/grab' },
+  { label: '本月完成', value: stats.value.monthlyCompleted,  icon: 'Check',    color: '#14b8a6', bg: '#fff', iconBg: 'rgba(20,184,166,.1)', route: '/cleaner/orders' },
+  { label: '本月收入', value: '¥' + (stats.value.monthlyIncome ?? 0), icon: 'Wallet', color: '#0ea5e9', bg: '#fff', iconBg: 'rgba(14,165,233,.1)', route: '/cleaner/income' },
 ])
 
 async function loadStats() {
@@ -473,6 +478,10 @@ onUnmounted(() => clearInterval(timer))
   box-shadow: var(--cm-shadow-sm);
   transition: transform .2s, box-shadow .2s;
 }
+.stat-card--clickable {
+  cursor: pointer;
+}
+.stat-card--clickable:hover { transform: translateY(-3px); box-shadow: var(--cm-shadow-md); }
 .stat-card:hover { transform: translateY(-3px); box-shadow: var(--cm-shadow-md); }
 .stat-icon-wrap {
   display: inline-flex;

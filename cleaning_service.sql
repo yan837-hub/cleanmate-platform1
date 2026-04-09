@@ -166,6 +166,7 @@ CREATE TABLE `service_order` (
   `deposit_fee`     DECIMAL(8,2) DEFAULT NULL COMMENT '已付定金',
   `pay_status`      TINYINT      NOT NULL DEFAULT 0 COMMENT '支付状态：0=未支付 1=已付定金 2=已全额支付',
   `auto_confirm_at` DATETIME     DEFAULT NULL COMMENT '48h自动确认时间',
+  `completion_remark` VARCHAR(500) DEFAULT NULL COMMENT '完工备注（保洁员填写）',
   `completed_at`    DATETIME     DEFAULT NULL COMMENT '完成时间',
   `created_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

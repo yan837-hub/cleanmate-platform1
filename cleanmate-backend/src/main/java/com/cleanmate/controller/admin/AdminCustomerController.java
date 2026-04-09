@@ -7,10 +7,12 @@ import com.cleanmate.common.Result;
 import com.cleanmate.entity.CustomerProfile;
 import com.cleanmate.entity.ServiceOrder;
 import com.cleanmate.entity.User;
+import com.cleanmate.entity.OperationLog;
 import com.cleanmate.exception.BusinessException;
 import com.cleanmate.exception.ErrorCode;
 import com.cleanmate.mapper.ServiceOrderMapper;
 import com.cleanmate.service.ICustomerProfileService;
+import com.cleanmate.service.IOperationLogService;
 import com.cleanmate.service.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +33,7 @@ public class AdminCustomerController {
     private final IUserService            userService;
     private final ICustomerProfileService customerProfileService;
     private final ServiceOrderMapper      orderMapper;
+    private final IOperationLogService    operationLogService;
 
     /** 顾客列表（分页，支持 status 筛选 / keyword 搜索手机号或昵称） */
     @GetMapping
@@ -84,12 +87,24 @@ public class AdminCustomerController {
     /** 启用 / 停用顾客账号（status: 1=正常 3=停用） */
     @PutMapping("/{userId}/status")
     public Result<Void> toggleStatus(@PathVariable Long userId,
-                                     @RequestParam Integer status) {
+                                     @RequestParam Integer status,
+                                     org.springframework.security.core.Authentication auth) {
         if (status != 1 && status != 3) throw new BusinessException(ErrorCode.PARAM_ERROR);
         User user = userService.getById(userId);
         if (user == null || user.getRole() != 1) throw new BusinessException(ErrorCode.USER_NOT_EXIST);
+        int oldStatus = user.getStatus();
         user.setStatus(status);
         userService.updateById(user);
+
+        Long adminId = (Long) auth.getPrincipal();
+        OperationLog opLog = new OperationLog();
+        opLog.setOperatorId(adminId);
+        opLog.setModule("封禁");
+        opLog.setAction("顾客账号状态变更[userId=" + userId + "]: " + oldStatus + "→" + status
+                + (status == 3 ? "（停用）" : "（启用）"));
+        opLog.setRefId(userId);
+        operationLogService.save(opLog);
+
         return Result.success();
     }
 }

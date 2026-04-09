@@ -18,6 +18,8 @@ import com.cleanmate.service.IFeeDetailService;
 import com.cleanmate.service.IServiceOrderService;
 import com.cleanmate.service.IServicePhotoService;
 import com.cleanmate.service.IServiceTypeService;
+import com.cleanmate.service.IOrderReviewService;
+import com.cleanmate.entity.OrderReview;
 import com.cleanmate.service.ISystemConfigService;
 import com.cleanmate.entity.SystemConfig;
 import com.cleanmate.utils.DistanceUtil;
@@ -55,6 +57,7 @@ public class CleanerOrderController {
     private final IServiceTypeService serviceTypeService;
     private final IDispatchRecordService dispatchRecordService;
     private final ICleanerProfileService cleanerProfileService;
+    private final IOrderReviewService orderReviewService;
     private final ISystemConfigService systemConfigService;
 
     @Value("${upload.path}")
@@ -331,6 +334,23 @@ public class CleanerOrderController {
         servicePhotoService.save(photo);
 
         return Result.success(imgUrl);
+    }
+
+    /** 我的评价列表（顾客对我的评价，按时间倒序分页） */
+    @GetMapping("/reviews")
+    public Result<com.cleanmate.common.PageResult<OrderReview>> getMyReviews(
+            @RequestParam(defaultValue = "1") long current,
+            @RequestParam(defaultValue = "10") long size,
+            Authentication auth) {
+        Long cleanerId = (Long) auth.getPrincipal();
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<OrderReview> page =
+                orderReviewService.lambdaQuery()
+                        .eq(OrderReview::getCleanerId, cleanerId)
+                        .eq(OrderReview::getIsVisible, 1)
+                        .orderByDesc(OrderReview::getCreatedAt)
+                        .page(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(current, size));
+        return Result.success(com.cleanmate.common.PageResult.of(
+                page.getRecords(), page.getTotal(), page.getCurrent(), page.getSize()));
     }
 
     /** 获取订单照片列表 */

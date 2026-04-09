@@ -230,11 +230,11 @@
                 <span style="text-decoration:line-through;color:#9ca3af">¥ {{ order.estimateFee }}</span>
               </el-descriptions-item>
               <el-descriptions-item label="退款金额">
-                <span class="refund-amount" style="color:#f59e0b">¥ {{ order.actualFee }}</span>
+                <span class="refund-amount" style="color:#f59e0b">¥ {{ order.refundAmount }}</span>
               </el-descriptions-item>
               <el-descriptions-item label="实际消费">
                 <span style="font-weight:700;color:#374151">
-                  ¥ {{ (parseFloat(order.estimateFee) - parseFloat(order.actualFee)).toFixed(2) }}
+                  ¥ {{ parseFloat(order.actualFee).toFixed(2) }}
                 </span>
               </el-descriptions-item>
             </template>

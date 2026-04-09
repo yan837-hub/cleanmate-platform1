@@ -65,7 +65,7 @@
     </el-aside>
 
     <!-- 右侧内容 -->
-    <el-container>
+    <el-container style="flex-direction: column; height: 100vh; overflow: hidden;">
       <el-header class="admin-header">
         <span class="page-title">{{ $route.meta.title || '管理后台' }}</span>
         <el-dropdown @command="handleCommand">
@@ -111,12 +111,20 @@ function handleCommand(command) {
 </script>
 
 <style scoped>
-.admin-container { min-height: 100vh; }
+.admin-container {
+  height: 100vh;
+  overflow: hidden;
+}
 
 .sidebar {
   background: #1e293b;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
 }
 
 .sidebar-logo {
@@ -173,5 +181,10 @@ function handleCommand(command) {
   color: #3f3f46;
 }
 
-.admin-main { background: #f9fafb; padding: 24px; }
+.admin-main {
+  background: #f9fafb;
+  padding: 24px;
+  overflow-y: auto;
+  height: calc(100vh - 60px);
+}
 </style>

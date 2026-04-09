@@ -49,27 +49,24 @@
         </el-button>
       </div>
       <div class="banner-trust">
-        <div class="trust-item">
-          <span class="trust-num">10,000<sup>+</sup></span>
-          <span class="trust-label">累计服务次数</span>
-        </div>
-        <div class="trust-divider"></div>
-        <div class="trust-item">
-          <span class="trust-num">98%</span>
-          <span class="trust-label">客户满意度</span>
-        </div>
-        <div class="trust-divider"></div>
-        <div class="trust-item">
-          <span class="trust-num">200<sup>+</sup></span>
-          <span class="trust-label">专业保洁员</span>
-        </div>
+        <template v-for="(item, index) in trustIndicators" :key="item.label">
+          <div class="trust-item">
+            <span class="trust-num">{{ item.num }}<sup v-if="item.sup">{{ item.sup }}</sup></span>
+            <span class="trust-label">{{ item.label }}</span>
+          </div>
+          <div v-if="index < trustIndicators.length - 1" class="trust-divider"></div>
+        </template>
       </div>
     </div>
 
     <!-- 统计卡片 -->
     <el-row :gutter="16" style="margin-top: 20px">
       <el-col :span="8" v-for="stat in statCards" :key="stat.label">
-        <div class="stat-card">
+        <div
+          class="stat-card"
+          :class="{ 'stat-card--clickable': stat.route }"
+          @click="stat.route && $router.push(stat.route)"
+        >
           <div class="stat-icon-wrap" :style="{ background: stat.iconBg }">
             <el-icon :size="22" :color="stat.color"><component :is="stat.icon" /></el-icon>
           </div>
@@ -107,17 +104,18 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { formatTime } from '@/utils/time'
 import { useUserStore } from '@/store/user'
 import { getCustomerStats, getMyOrders } from '@/api/order'
+import { trustIndicators, services } from '@/config/homeConfig'
 
 const userStore = useUserStore()
 
 const rawStats = ref({ total: 0, pending: 0, done: 0 })
 const activeOrder = ref(null)
 
-// 去掉硬编码好评率，改为 3 个真实统计项
+
 const statCards = computed(() => [
-  { label: '累计预约', value: rawStats.value.total,   icon: 'Calendar', color: '#0ea5e9', iconBg: 'rgba(14,165,233,.1)' },
-  { label: '待服务',   value: rawStats.value.pending, icon: 'Clock',    color: '#06b6d4', iconBg: 'rgba(6,182,212,.1)'  },
-  { label: '已完成',   value: rawStats.value.done,    icon: 'Check',    color: '#14b8a6', iconBg: 'rgba(20,184,166,.1)'  },
+  { label: '累计预约', value: rawStats.value.total,   icon: 'Calendar', color: '#0ea5e9', iconBg: 'rgba(14,165,233,.1)', route: '/customer/orders' },
+  { label: '待服务',   value: rawStats.value.pending, icon: 'Clock',    color: '#06b6d4', iconBg: 'rgba(6,182,212,.1)', route: '/customer/orders' },
+  { label: '已完成',   value: rawStats.value.done,    icon: 'Check',    color: '#14b8a6', iconBg: 'rgba(20,184,166,.1)', route: '/customer/orders' },
 ])
 
 async function loadStats() {
@@ -146,15 +144,6 @@ onMounted(() => {
   timer = setInterval(loadActiveOrder, 30000)
 })
 onUnmounted(() => clearInterval(timer))
-
-const services = [
-  { name: '日常保洁', desc: '日常家庭清洁，让家焕然一新', price: '¥35/时', color: '#0ea5e9' },
-  { name: '深度保洁', desc: '全屋深度清洁，不留死角',     price: '¥50/时', color: '#0284c7' },
-  { name: '开荒保洁', desc: '新房装修后的首次清洁',       price: '¥60/时', color: '#06b6d4' },
-  { name: '家电清洗', desc: '空调、油烟机等家电专业清洗', price: '¥80/台', color: '#0891b2' },
-  { name: '玻璃清洗', desc: '门窗玻璃专业清洁',           price: '¥10/㎡', color: '#14b8a6' },
-  { name: '地板打蜡', desc: '木地板养护打蜡服务',         price: '¥15/㎡', color: '#0d9488' },
-]
 </script>
 
 <style scoped>
@@ -300,6 +289,10 @@ const services = [
   transition: transform .2s, box-shadow .2s;
   cursor: default;
 }
+.stat-card--clickable {
+  cursor: pointer;
+}
+.stat-card--clickable:hover { transform: translateY(-2px); box-shadow: var(--cm-shadow-md); }
 .stat-card:hover { transform: translateY(-2px); box-shadow: var(--cm-shadow-md); }
 .stat-icon-wrap {
   display: inline-flex;

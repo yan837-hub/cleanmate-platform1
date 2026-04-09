@@ -1,6 +1,12 @@
 <template>
   <div>
-    <!-- 搜索栏 -->
+    <el-tabs v-model="activeTab" style="margin-bottom:16px">
+      <el-tab-pane label="投诉处理" name="complaints" />
+      <el-tab-pane label="异常通知" name="notifications" />
+    </el-tabs>
+
+    <template v-if="activeTab === 'complaints'">
+      <!-- 搜索栏 -->
     <el-card style="margin-bottom:16px">
       <el-form inline>
         <el-form-item label="投诉状态">
@@ -143,12 +149,20 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item v-if="handleForm.status === 3" label="判定结果" required>
-          <el-select v-model="handleForm.result" placeholder="请选择" style="width:100%" @change="handleForm.refundAmount = null">
+          <el-select v-model="handleForm.result" placeholder="请选择" style="width:100%" @change="() => { handleForm.refundAmount = null; handleForm.newAppointTime = null }">
             <el-option label="全额退款（退回全部费用）" :value="1" />
             <el-option label="部分退款（填写退款金额）" :value="4" />
             <el-option label="免费重做（费用清零，重新派单）" :value="3" />
             <el-option label="驳回投诉（服务质量无问题）" :value="2" />
           </el-select>
+        </el-form-item>
+        <el-form-item v-if="handleForm.status === 3 && handleForm.result === 3" label="新预约时间" required>
+          <el-date-picker v-model="handleForm.newAppointTime" type="datetime"
+            placeholder="请选择新的服务时间" format="YYYY-MM-DD HH:mm"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            :disabled-date="d => d < new Date()"
+            style="width:100%" />
+          <div style="font-size:12px;color:#f59e0b;margin-top:4px">重做订单将以此时间重新进入派单流程</div>
         </el-form-item>
         <el-form-item v-if="handleForm.status === 3 && handleForm.result === 4" label="退款金额" required>
           <el-input-number v-model="handleForm.refundAmount" :min="0"
@@ -166,14 +180,75 @@
         <el-button type="primary" :loading="submitting" @click="submitHandle">提交处理</el-button>
       </template>
     </el-dialog>
-  </div>
+  </template>
+
+  <template v-if="activeTab === 'notifications'">
+    <el-card>
+      <template #header>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:16px;font-weight:600">异常通知</span>
+          <el-button v-if="notifications.some(n => n.isRead === 0)" link type="primary" @click="markAllNotificationsRead">全部标记已读</el-button>
+        </div>
+      </template>
+
+      <el-table :data="pagedNotifications" v-loading="notifLoading" stripe style="width:100%">
+        <el-table-column label="ID" prop="id" width="80" />
+        <el-table-column label="订单ID" prop="refId" width="100" />
+        <el-table-column label="标题" prop="title" width="220" />
+        <el-table-column label="内容" prop="content" show-overflow-tooltip min-width="160" />
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.isRead === 1 ? 'success' : 'danger'" size="small">{{ row.isRead === 1 ? '已读' : '未读' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="时间" prop="createdAt" width="170">
+          <template #default="{ row }">{{ fmt(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="180" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link size="small" @click="openOrderDrawer(row.refId)">查看订单</el-button>
+            <el-button type="success" link size="small" @click="handleNotificationMarkRead(row)" v-if="row.isRead === 0">标记已读</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-pagination
+        style="margin-top:16px;text-align:right"
+        background layout="prev, pager, next, total"
+        :total="notifications.length" :page-size="notifPageSize"
+        v-model:current-page="notifPage" />
+    </el-card>
+  </template>
+
+  <!-- 异常通知 - 订单详情抽屉 -->
+  <el-drawer v-model="orderDrawer" title="订单详情" size="520px" destroy-on-close>
+    <div v-loading="orderDetailLoading">
+      <template v-if="orderDetail">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="订单号">{{ orderDetail.orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="服务类型">{{ orderDetail.serviceTypeName }}</el-descriptions-item>
+          <el-descriptions-item label="顾客">{{ orderDetail.customerName }}</el-descriptions-item>
+          <el-descriptions-item label="保洁员">{{ orderDetail.cleanerName || '--' }}</el-descriptions-item>
+          <el-descriptions-item label="服务地址">{{ orderDetail.addressSnapshot }}</el-descriptions-item>
+          <el-descriptions-item label="预约时间">{{ fmt(orderDetail.appointTime) }}</el-descriptions-item>
+          <el-descriptions-item label="订单状态">{{ orderDetail.statusText || orderDetail.status }}</el-descriptions-item>
+          <el-descriptions-item label="预估费用">¥{{ orderDetail.estimateFee }}</el-descriptions-item>
+          <el-descriptions-item label="实际费用">{{ orderDetail.actualFee != null ? '¥' + orderDetail.actualFee : '--' }}</el-descriptions-item>
+          <el-descriptions-item label="下单时间">{{ fmt(orderDetail.createdAt) }}</el-descriptions-item>
+        </el-descriptions>
+      </template>
+      <el-empty v-else-if="!orderDetailLoading" description="暂无数据" />
+    </div>
+  </el-drawer>
+</div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getComplaints, handleComplaint } from '@/api/admin'
+import { getComplaints, handleComplaint, getAdminNotifications, markAdminNotificationRead, getAdminOrderDetail } from '@/api/admin'
 
+const activeTab   = ref('complaints')
 const list        = ref([])
 const total       = ref(0)
 const loading     = ref(false)
@@ -184,7 +259,19 @@ const current     = ref(null)
 const handleDialog = ref(false)
 const submitting  = ref(false)
 const filters     = ref({ status: null, keyword: '' })
-const handleForm  = ref({ id: null, status: 2, result: null, adminRemark: '', orderActualFee: null, orderEstimateFee: null, refundAmount: null })
+const notifications = ref([])
+const notifLoading = ref(false)
+const notifPage = ref(1)
+const notifPageSize = 10
+const pagedNotifications = computed(() => {
+  const start = (notifPage.value - 1) * notifPageSize
+  return notifications.value.slice(start, start + notifPageSize)
+})
+const orderDrawer = ref(false)
+const orderDetail = ref(null)
+const orderDetailLoading = ref(false)
+
+const handleForm  = ref({ id: null, status: 2, result: null, adminRemark: '', orderActualFee: null, orderEstimateFee: null, refundAmount: null, newAppointTime: null })
 const statCount   = ref({ pending: 0, processing: 0, closed: 0 })
 
 function sType(s)      { return { 1:'danger', 2:'warning', 3:'success' }[s] ?? 'info' }
@@ -223,6 +310,36 @@ async function loadStats() {
   } catch { /* ignore */ }
 }
 
+async function loadNotifications() {
+  notifLoading.value = true
+  try {
+    const data = await getAdminNotifications()
+    notifications.value = (data || []).filter(n => n.type === 8)
+    notifPage.value = 1
+  } catch {
+    ElMessage.error('加载异常通知失败')
+  } finally {
+    notifLoading.value = false
+  }
+}
+
+async function handleNotificationMarkRead(row) {
+  if (row.isRead === 1) return
+  try {
+    await markAdminNotificationRead(row.id)
+    row.isRead = 1
+    ElMessage.success('已标记已读')
+  } catch {
+    ElMessage.error('标记已读失败')
+  }
+}
+
+async function markAllNotificationsRead() {
+  for (const row of notifications.value.filter(n => n.isRead === 0)) {
+    await handleNotificationMarkRead(row)
+  }
+}
+
 function reset() {
   filters.value = { status: null, keyword: '' }
   currentPage.value = 1
@@ -242,6 +359,8 @@ function openHandle(row) {
     adminRemark: row.adminRemark || '',
     orderActualFee: row.orderActualFee,
     orderEstimateFee: row.orderEstimateFee,
+    refundAmount: null,
+    newAppointTime: null,
   }
   handleDialog.value = true
 }
@@ -259,13 +378,18 @@ async function submitHandle() {
     ElMessage.warning('部分退款请填写退款金额')
     return
   }
+  if (handleForm.value.result === 3 && !handleForm.value.newAppointTime) {
+    ElMessage.warning('免费重做请指定新的预约时间')
+    return
+  }
   submitting.value = true
   try {
     await handleComplaint(handleForm.value.id, {
-      status:       handleForm.value.status,
-      result:       handleForm.value.result,
-      adminRemark:  handleForm.value.adminRemark,
-      refundAmount: handleForm.value.refundAmount,
+      status:          handleForm.value.status,
+      result:          handleForm.value.result,
+      adminRemark:     handleForm.value.adminRemark,
+      refundAmount:    handleForm.value.refundAmount,
+      newAppointTime:  handleForm.value.newAppointTime,
     })
     ElMessage.success('处理成功')
     handleDialog.value = false
@@ -279,7 +403,28 @@ async function submitHandle() {
   }
 }
 
-onMounted(() => { load(); loadStats() })
+async function openOrderDrawer(orderId) {
+  if (!orderId) return
+  orderDrawer.value = true
+  orderDetail.value = null
+  orderDetailLoading.value = true
+  try {
+    orderDetail.value = await getAdminOrderDetail(orderId)
+  } catch {
+    ElMessage.error('加载订单详情失败')
+  } finally {
+    orderDetailLoading.value = false
+  }
+}
+
+onMounted(() => {
+  load()
+  loadStats()
+})
+
+watch(activeTab, (val) => {
+  if (val === 'notifications') loadNotifications()
+})
 </script>
 
 <style scoped>

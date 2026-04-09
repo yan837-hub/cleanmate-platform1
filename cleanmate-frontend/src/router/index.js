@@ -51,6 +51,7 @@ const router = createRouter({
         { path: 'schedule', name: 'CleanerSchedule', component: () => import('@/views/cleaner/Schedule.vue') },
         { path: 'income', name: 'CleanerIncome', component: () => import('@/views/cleaner/Income.vue') },
         { path: 'profile', name: 'CleanerProfile', component: () => import('@/views/cleaner/Profile.vue') },
+        { path: 'reviews', name: 'CleanerReviews', component: () => import('@/views/cleaner/Reviews.vue') },
         { path: 'notifications', name: 'CleanerNotifications', component: () => import('@/views/shared/NotificationCenter.vue') },
       ],
     },
