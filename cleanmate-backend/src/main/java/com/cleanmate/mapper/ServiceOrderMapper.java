@@ -13,26 +13,6 @@ import java.util.Map;
 public interface ServiceOrderMapper extends BaseMapper<ServiceOrder> {
 
     /**
-     * 按天统计订单趋势：新增数、完成数、取消数、完成收入（已完成订单的实收/估算金额）
-     * income 字段用 CAST AS DECIMAL 保证序列化为 JSON number 而非 BigDecimal 对象
-     * @param days 往前多少天
-     */
-    @Select("""
-        SELECT
-            DATE(created_at)                                                    AS date,
-            COUNT(*)                                                            AS created,
-            SUM(CASE WHEN status = 6 THEN 1 ELSE 0 END)                        AS completed,
-            SUM(CASE WHEN status = 8 THEN 1 ELSE 0 END)                        AS cancelled,
-            CAST(COALESCE(SUM(CASE WHEN status = 6
-                THEN COALESCE(actual_fee, estimate_fee, 0) END), 0) AS DECIMAL(12,2)) AS income
-        FROM service_order
-        WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
-        GROUP BY DATE(created_at)
-        ORDER BY DATE(created_at) ASC
-        """)
-    List<Map<String, Object>> selectOrderTrend(@Param("days") int days);
-
-    /**
      * 今日新增订单数
      */
     @Select("SELECT COUNT(*) FROM service_order WHERE DATE(created_at) = CURDATE()")
@@ -59,18 +39,6 @@ public interface ServiceOrderMapper extends BaseMapper<ServiceOrder> {
      */
     @Select("SELECT COUNT(*) FROM service_order WHERE status = 1")
     long countPendingDispatch();
-
-    /**
-     * 按服务类型分组统计订单数（旧，保留兼容）
-     */
-    @Select("""
-        SELECT st.name AS label, COUNT(so.id) AS cnt
-        FROM service_order so
-        JOIN service_type st ON so.service_type_id = st.id
-        GROUP BY so.service_type_id, st.name
-        ORDER BY cnt DESC
-        """)
-    List<Map<String, Object>> selectServiceTypeStats();
 
     /**
      * 进行中订单数（status=3已接单 或 4=服务中）

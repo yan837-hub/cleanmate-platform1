@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mysql -uroot -p123456 cleaning_service -e \"DESC cleaner_profile;\")"
+      "Bash(python3 -)",
+      "Bash(xargs wc:*)",
+      "Bash(find /f/cleanmate-platform/cleanmate-backend/src/main/java/com/cleanmate/mapper -name \"*.java\" -exec grep -l \"List\\\\|Page\\\\|PageResult\" {} \\\\;)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -E \"\\\\.class$|\\\\.jar$|target/|node_modules/\")",
+      "Bash(find /f/cleanmate-platform/cleanmate-frontend/src/views -name \"*.vue\" -exec grep -l \"console.log\\\\|debugger\" {} \\\\;)",
+      "Bash(git -C f:/cleanmate-platform rm -r --cached cleanmate-backend/target/)"
     ]
   }
 }

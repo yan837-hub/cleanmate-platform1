@@ -4,7 +4,6 @@ import com.cleanmate.entity.CleanerIncome;
 import com.cleanmate.entity.DispatchRecord;
 import com.cleanmate.entity.ServiceOrder;
 import com.cleanmate.enums.OrderStatus;
-import com.cleanmate.service.ICleanerIncomeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

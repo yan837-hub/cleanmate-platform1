@@ -1,0 +1,19 @@
+# Maven 编译产物
+cleanmate-backend/target/
+
+# JVM 崩溃日志
+hs_err_pid*.log
+
+# 本地环境配置
+*.local
+
+# IDE
+.vscode/
+.idea/
+
+# 前端依赖
+cleanmate-frontend/node_modules/
+cleanmate-frontend/dist/
+
+# 上传文件（运行时生成，不纳入版本控制）
+cleanmate-backend/uploads/
