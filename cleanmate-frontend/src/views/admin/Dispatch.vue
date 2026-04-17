@@ -35,8 +35,8 @@
           </div>
           <div class="card-bottom">
             <span class="fee">¥{{ order.estimateFee }}</span>
-            <el-tag :type="order.status === 1 ? 'warning' : 'danger'" size="small">
-              {{ order.status === 1 ? '待派单' : '超时待处理' }}
+            <el-tag :type="order.status === 1 ? 'warning' : 'primary'" size="small">
+              {{ order.status === 1 ? '待派单' : '已派待确认' }}
             </el-tag>
           </div>
         </div>
@@ -67,8 +67,8 @@
         <div class="order-summary">
           <div class="summary-header">
             <span class="summary-title">{{ selectedOrder.serviceTypeName }}</span>
-            <el-tag :type="selectedOrder.status === 1 ? 'warning' : 'danger'" size="small">
-              {{ selectedOrder.status === 1 ? '待派单' : '超时待处理' }}
+            <el-tag :type="selectedOrder.status === 1 ? 'warning' : 'primary'" size="small">
+              {{ selectedOrder.status === 1 ? '待派单' : '已派待确认' }}
             </el-tag>
           </div>
           <div class="summary-row">
@@ -170,7 +170,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, Clock, Location, Star, List } from '@element-plus/icons-vue'
 import { getPendingOrders, getDispatchCandidates, manualDispatch, autoDispatch } from '@/api/admin'
 
@@ -271,6 +271,19 @@ async function doAutoDispatch() {
 
 // ── 打开确认弹窗 ──────────────────────────────────────
 function openConfirm(cleaner) {
+  // status=2 说明当前已有保洁员待确认，提示管理员将覆盖原派单
+  if (selectedOrder.value?.status === 2) {
+    ElMessageBox.confirm(
+      `当前订单已派给保洁员 ${selectedOrder.value.cleanerName || ''}，手动指派将覆盖原派单，是否继续？`,
+      '覆盖确认',
+      { confirmButtonText: '继续指派', cancelButtonText: '取消', type: 'warning' }
+    ).then(() => {
+      confirmTarget.value = cleaner
+      dispatchRemark.value = ''
+      confirmVisible.value = true
+    }).catch(() => {})
+    return
+  }
   confirmTarget.value = cleaner
   dispatchRemark.value = ''
   confirmVisible.value = true

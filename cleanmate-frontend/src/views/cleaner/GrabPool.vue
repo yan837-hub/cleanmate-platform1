@@ -124,11 +124,13 @@ async function loadPool() {
 }
 
 async function handleGrab(order) {
-  await ElMessageBox.confirm(
-    `确认抢单？\n服务：${order.serviceTypeName}\n预约时间：${formatTime(order.appointTime)}`,
-    '抢单确认',
-    { confirmButtonText: '确认抢单', cancelButtonText: '取消', type: 'warning' }
-  )
+  try {
+    await ElMessageBox.confirm(
+      `确认抢单？\n服务：${order.serviceTypeName}\n预约时间：${formatTime(order.appointTime)}`,
+      '抢单确认',
+      { confirmButtonText: '确认抢单', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch { return }
   grabbingId.value = order.id
   try {
     await grabOrder(order.id)
@@ -136,7 +138,7 @@ async function handleGrab(order) {
     list.value = list.value.filter(o => o.id !== order.id)
     total.value--
   } catch (e) {
-    // 时段冲突或已被抢，刷新列表
+    ElMessage.error(e?.message || '抢单失败，请稍后重试')
     await loadPool()
   } finally {
     grabbingId.value = null

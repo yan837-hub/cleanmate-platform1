@@ -33,6 +33,16 @@
           </span>
         </div>
         <div v-if="item.content" class="review-content">{{ item.content }}</div>
+        <div v-if="item.imgs" style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
+          <el-image
+            v-for="url in item.imgs.split(',')"
+            :key="url"
+            :src="url"
+            style="width:72px;height:72px;border-radius:4px;object-fit:cover"
+            :preview-src-list="item.imgs.split(',')"
+            fit="cover"
+          />
+        </div>
         <!-- 已有回复 -->
         <div v-if="item.replyContent" class="reply-content">
           <span style="color:#909399;font-size:12px">我的回复（{{ fmt(item.repliedAt) }}）：</span>

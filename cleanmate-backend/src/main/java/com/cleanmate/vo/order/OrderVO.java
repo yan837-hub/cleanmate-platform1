@@ -66,4 +66,7 @@ public class OrderVO {
     private Double distanceKm;
     /** 抢单池专用：预计保洁员收入（estimateFee × (1-commissionRate)） */
     private java.math.BigDecimal estimatedIncome;
+
+    /** 当前系统定金比例（从 system_config.deposit_rate 读取，供前端展示用） */
+    private BigDecimal depositRate;
 }

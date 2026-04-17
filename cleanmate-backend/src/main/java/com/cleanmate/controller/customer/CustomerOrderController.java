@@ -579,9 +579,10 @@ public class CustomerOrderController {
         }
         order.setStatus(OrderStatus.COMPLETED.getCode());
         order.setCompletedAt(java.time.LocalDateTime.now());
+        order.setPayStatus(2); // 模拟支付完成
         orderService.updateById(order);
         orderService.logStatusChange(orderId, OrderStatus.PENDING_COMPLETE_CONFIRM.getCode(),
-                OrderStatus.COMPLETED.getCode(), customerId, "顾客确认完成");
+                OrderStatus.COMPLETED.getCode(), customerId, "顾客确认完成，系统模拟支付结算");
         // 结算保洁员收入：待结算 → 已结算
         if (order.getCleanerId() != null) {
             cleanerIncomeService.lambdaUpdate()

@@ -337,7 +337,9 @@ async function openDetail(row) {
 }
 
 async function triggerDispatch(row) {
-  await ElMessageBox.confirm(`对订单 ${row.orderNo} 触发自动派单？`, '确认', { type: 'warning' })
+  try {
+    await ElMessageBox.confirm(`对订单 ${row.orderNo} 触发自动派单？`, '确认', { type: 'warning' })
+  } catch { return }
   try {
     const msg = await autoDispatch(row.id)
     ElMessage.success(msg || '派单成功')

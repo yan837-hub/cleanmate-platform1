@@ -157,7 +157,7 @@
           <!-- pay_status=0 且 status=1：显示支付定金 -->
           <div v-else-if="order.payStatus === 0 && order.status === 1">
             <div class="pay-amount">定金 ¥{{ depositPreview }}</div>
-            <div class="pay-sub">（可锁定订单，约为预估费用的30%）</div>
+            <div class="pay-sub">（可锁定订单，约为预估费用的{{ depositRateText }}）</div>
             <div class="pay-hint">也可完成后一次性支付全额</div>
             <el-button type="primary" style="margin-top:12px" @click="handlePayDeposit">
               支付定金 ¥{{ depositPreview }}
@@ -282,7 +282,20 @@
               <el-rate :model-value="existingReview.scorePunctual" disabled />
             </div>
             <div v-if="existingReview.content" class="review-content">{{ existingReview.content }}</div>
+            <div v-if="existingReview.imgs" style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+              <el-image
+                v-for="url in existingReview.imgs.split(',')"
+                :key="url"
+                :src="url"
+                style="width:80px;height:80px;border-radius:4px;object-fit:cover"
+                :preview-src-list="existingReview.imgs.split(',')"
+                fit="cover"
+              />
+            </div>
             <div class="review-time">评价时间：{{ formatTime(existingReview.createdAt) }}</div>
+            <div v-if="existingReview.replyContent" class="review-reply">
+              <span class="review-reply-label">保洁员回复：</span>{{ existingReview.replyContent }}
+            </div>
           </div>
 
           <!-- 未评价：评价表单 -->
@@ -306,6 +319,22 @@
               placeholder="分享您的服务体验（选填）"
               style="margin: 12px 0"
             />
+            <div style="font-size:13px;color:#606266;margin:8px 0 6px">上传现场图片（选填，最多3张）</div>
+            <el-upload
+              action="/api/common/upload"
+              :headers="uploadHeaders"
+              list-type="picture-card"
+              :limit="3"
+              accept="image/*"
+              :on-success="(res) => reviewForm.imgs.push(res.data)"
+              :on-remove="(file) => reviewForm.imgs = reviewForm.imgs.filter(u => u !== file.response?.data)"
+              style="margin-bottom:12px"
+            >
+              <div style="display:flex;flex-direction:column;align-items:center;color:#909399">
+                <el-icon style="font-size:20px"><Plus /></el-icon>
+                <span style="font-size:12px;margin-top:4px">点击上传</span>
+              </div>
+            </el-upload>
             <el-button type="primary" :loading="submittingReview" @click="handleSubmitReview">
               提交评价
             </el-button>
@@ -329,8 +358,22 @@
           <el-input v-model="complaintForm.reason" type="textarea" :rows="4"
             placeholder="请详细描述您遇到的问题，如服务质量、物品损坏等" />
         </el-form-item>
-        <el-form-item label="凭证说明">
-          <el-input v-model="complaintForm.imgs" placeholder="图片URL，多张用逗号分隔（选填）" />
+        <el-form-item label="凭证图片">
+          <el-upload
+            action="/api/common/upload"
+            :headers="uploadHeaders"
+            list-type="picture-card"
+            :limit="5"
+            accept="image/*"
+            :on-success="(res) => complaintForm.imgs.push(res.data)"
+            :on-remove="(file) => complaintForm.imgs = complaintForm.imgs.filter(u => u !== file.response?.data)"
+          >
+            <div style="display:flex;flex-direction:column;align-items:center;color:#909399">
+              <el-icon style="font-size:20px"><Plus /></el-icon>
+              <span style="font-size:12px;margin-top:4px">上传凭证</span>
+            </div>
+          </el-upload>
+          <div style="font-size:12px;color:#909399;margin-top:4px">可上传服务问题、物品损坏等现场照片，最多5张</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -386,9 +429,10 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getOrderDetail, cancelOrder, confirmComplete, reportNoShow, getOrderReview, submitReview, submitComplaint, getOrderComplaint, submitReschedule, getRescheduleStatus, payDeposit, payFinal, payFull } from '@/api/order'
-import { Warning, Clock } from '@element-plus/icons-vue'
+import { Warning, Clock, Plus } from '@element-plus/icons-vue'
 import { formatTime } from '@/utils/time'
 import { orderStatusText, orderStatusType } from '@/utils/orderStatus'
+import { getToken } from '@/utils/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -401,14 +445,15 @@ const cancelling = ref(false)
 
 // 评价相关
 const existingReview = ref(null)
-const reviewForm = ref({ scoreAttitude: 5, scoreQuality: 5, scorePunctual: 5, content: '' })
+const reviewForm = ref({ scoreAttitude: 5, scoreQuality: 5, scorePunctual: 5, content: '', imgs: [] })
 const submittingReview = ref(false)
 
 // 投诉相关
 const complaintDialog    = ref(false)
 const submittingComplaint = ref(false)
 const existingComplaint  = ref(null)
-const complaintForm      = ref({ reason: '', imgs: '' })
+const complaintForm      = ref({ reason: '', imgs: [] })
+const uploadHeaders      = { Authorization: 'Bearer ' + getToken() }
 
 // 改期相关
 const rescheduleDialog    = ref(false)
@@ -543,7 +588,7 @@ function disablePastDates(date) {
 }
 
 function openComplaintDialog() {
-  complaintForm.value = { reason: '', imgs: '' }
+  complaintForm.value = { reason: '', imgs: [] }
   complaintDialog.value = true
 }
 
@@ -560,7 +605,10 @@ async function handleSubmitComplaint() {
   )
   submittingComplaint.value = true
   try {
-    await submitComplaint(route.params.id, complaintForm.value)
+    await submitComplaint(route.params.id, {
+      ...complaintForm.value,
+      imgs: complaintForm.value.imgs.join(',')
+    })
     ElMessage.success('投诉已提交，管理员将在1-3个工作日内处理')
     complaintDialog.value = false
     await loadOrder()
@@ -574,7 +622,10 @@ async function handleSubmitComplaint() {
 async function handleSubmitReview() {
   submittingReview.value = true
   try {
-    await submitReview(route.params.id, reviewForm.value)
+    await submitReview(route.params.id, {
+      ...reviewForm.value,
+      imgs: reviewForm.value.imgs.join(',')
+    })
     ElMessage.success('评价提交成功，感谢您的反馈！')
     existingReview.value = await getOrderReview(route.params.id)
   } catch (e) {
@@ -615,10 +666,15 @@ async function handleConfirm() {
         `模拟支付 — ${payLabel}`,
         { type: 'warning', confirmButtonText: '确认支付', cancelButtonText: '取消' }
       )
+    } catch {
+      return // 用户取消
+    }
+    try {
       await payFn()
       ElMessage.success('支付成功')
       await loadOrder()
-    } catch {
+    } catch (e) {
+      ElMessage.error(e?.message || '支付失败，请稍后重试')
       return
     }
   }
@@ -633,10 +689,12 @@ async function handleConfirm() {
 }
 
 async function handleNoShow() {
-  await ElMessageBox.confirm(
-    '确认报告保洁员未到场？订单将被取消，平台会记录此次异常。',
-    '报告未到场', { type: 'warning', confirmButtonText: '确认报告', confirmButtonClass: 'el-button--danger' }
-  )
+  try {
+    await ElMessageBox.confirm(
+      '确认报告保洁员未到场？订单将被取消，平台会记录此次异常。',
+      '报告未到场', { type: 'warning', confirmButtonText: '确认报告', confirmButtonClass: 'el-button--danger' }
+    )
+  } catch { return }
   try {
     await reportNoShow(route.params.id)
     ElMessage.success('已报告，订单已取消')
@@ -648,10 +706,17 @@ async function handleNoShow() {
 
 // ─────────── 支付 ───────────
 
-// 定金预览（estimateFee × 0.20，2位小数）
+// 定金预览（estimateFee × depositRate，比例从后端 order.depositRate 读取）
 const depositPreview = computed(() => {
   if (!order.value?.estimateFee) return '--'
-  return (parseFloat(order.value.estimateFee) * 0.3).toFixed(2)
+  const rate = parseFloat(order.value.depositRate ?? 0.3)
+  return (parseFloat(order.value.estimateFee) * rate).toFixed(2)
+})
+
+// 定金比例百分比文案（如 0.3 → "30%"）
+const depositRateText = computed(() => {
+  const rate = parseFloat(order.value?.depositRate ?? 0.3)
+  return (rate * 100).toFixed(0) + '%'
 })
 
 // 尾款预览（depositFee 为空时用前端估算定金兜底）
@@ -719,6 +784,8 @@ onMounted(loadOrder)
 .review-label { font-size: 13px; color: #6b7280; width: 60px; flex-shrink: 0; }
 .review-content { font-size: 14px; color: #111; background: #eff6ff; border-radius: 8px; padding: 10px 14px; margin: 8px 0; border-left: 3px solid #2563eb; }
 .review-time { font-size: 12px; color: #9ca3af; margin-top: 8px; }
+.review-reply { font-size: 13px; color: #374151; background: #f0fdf4; border-radius: 8px; padding: 8px 12px; margin-top: 8px; border-left: 3px solid #16a34a; }
+.review-reply-label { font-weight: 600; color: #16a34a; margin-right: 4px; }
 
 .after-sale-tip { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
 .tip-text { font-size: 12px; color: #9ca3af; }

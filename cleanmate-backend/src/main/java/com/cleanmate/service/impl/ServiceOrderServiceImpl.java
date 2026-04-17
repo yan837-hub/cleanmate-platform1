@@ -188,8 +188,14 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         long bufferMin = getCommuteBufferMin();
         LocalDateTime lockStart = order.getAppointTime().minusMinutes(bufferMin);
         LocalDateTime lockEnd = order.getAppointTime().plusMinutes(planMin + bufferMin);
-        if (!scheduleTemplateService.isCleanerAvailable(cleanerId, lockStart, lockEnd)) {
-            throw new BusinessException(ErrorCode.CLEANER_NOT_AVAILABLE);
+        ICleanerScheduleTemplateService.AvailabilityResult avail =
+                scheduleTemplateService.checkAvailability(cleanerId, lockStart, lockEnd);
+        if (avail == ICleanerScheduleTemplateService.AvailabilityResult.TIME_LOCK_CONFLICT) {
+            throw new BusinessException("该时段已有订单，存在时间冲突，无法抢单");
+        } else if (avail == ICleanerScheduleTemplateService.AvailabilityResult.SCHEDULE_NOT_COVER) {
+            String need = order.getAppointTime().toLocalTime().toString().substring(0, 5)
+                    + " ~ " + order.getAppointTime().plusMinutes(planMin).toLocalTime().toString().substring(0, 5);
+            throw new BusinessException("该订单服务时段为 " + need + "，与您的工作档期不符，可前往档期管理调整后再抢单");
         }
 
         // 更新订单
@@ -357,7 +363,10 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         order.setActualDuration(actualDuration);
         order.setActualFee(actualFee);
         order.setStatus(OrderStatus.PENDING_COMPLETE_CONFIRM.getCode());
-        order.setAutoConfirmAt(LocalDateTime.now().plusHours(48));
+        SystemConfig autoConfirmCfg = systemConfigService.lambdaQuery()
+                .eq(SystemConfig::getConfigKey, "auto_confirm_hours").one();
+        long autoConfirmHours = autoConfirmCfg != null ? Long.parseLong(autoConfirmCfg.getConfigValue()) : 48L;
+        order.setAutoConfirmAt(LocalDateTime.now().plusHours(autoConfirmHours));
         this.updateById(order);
         logStatusChange(orderId, OrderStatus.IN_SERVICE.getCode(),
                 OrderStatus.PENDING_COMPLETE_CONFIRM.getCode(), cleanerId, "保洁员完工上报");
@@ -378,8 +387,16 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
             !order.getStatus().equals(OrderStatus.DISPATCHED_PENDING_CONFIRM.getCode())) {
             throw new BusinessException("订单状态为【" + OrderStatus.of(order.getStatus()).getDesc() + "】，无法派单");
         }
-        // 若已派单但保洁员超时未确认，先将状态退回待派单再重新派
+        // 若已派单但保洁员超时未确认，先校验是否真的已超时，再退回待派单重新派
         if (order.getStatus().equals(OrderStatus.DISPATCHED_PENDING_CONFIRM.getCode())) {
+            DispatchRecord latestDispatch = dispatchRecordService.lambdaQuery()
+                    .eq(DispatchRecord::getOrderId, orderId)
+                    .eq(DispatchRecord::getStatus, 1)
+                    .orderByDesc(DispatchRecord::getId)
+                    .last("LIMIT 1").one();
+            if (latestDispatch != null && latestDispatch.getExpireAt().isAfter(LocalDateTime.now())) {
+                throw new BusinessException("当前派单仍在响应期内，请等待保洁员确认或超时后再重新派单");
+            }
             order.setStatus(OrderStatus.PENDING_DISPATCH.getCode());
             order.setCleanerId(null);
             this.updateById(order);
@@ -793,6 +810,14 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
             }
         }
 
+        // 定金比例（从 system_config 读取，供前端展示用）
+        SystemConfig depositCfg = systemConfigService.lambdaQuery()
+                .eq(SystemConfig::getConfigKey, "deposit_rate").one();
+        BigDecimal depositRate = depositCfg != null
+                ? new BigDecimal(depositCfg.getConfigValue())
+                : new BigDecimal("0.30");
+        vo.setDepositRate(depositRate);
+
         return vo;
     }
 
@@ -975,8 +1000,14 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         long bufferMin = getCommuteBufferMin();
         LocalDateTime lockStart = order.getAppointTime().minusMinutes(bufferMin);
         LocalDateTime lockEnd   = order.getAppointTime().plusMinutes(planMin + bufferMin);
-        if (!scheduleTemplateService.isCleanerAvailable(cleanerId, lockStart, lockEnd)) {
-            throw new BusinessException(ErrorCode.CLEANER_NOT_AVAILABLE);
+        ICleanerScheduleTemplateService.AvailabilityResult avail =
+                scheduleTemplateService.checkAvailability(cleanerId, lockStart, lockEnd);
+        if (avail == ICleanerScheduleTemplateService.AvailabilityResult.TIME_LOCK_CONFLICT) {
+            throw new BusinessException("该保洁员该时段已有订单，存在时间冲突");
+        } else if (avail == ICleanerScheduleTemplateService.AvailabilityResult.SCHEDULE_NOT_COVER) {
+            String need = order.getAppointTime().toLocalTime().toString().substring(0, 5)
+                    + " ~ " + order.getAppointTime().plusMinutes(planMin).toLocalTime().toString().substring(0, 5);
+            throw new BusinessException("该保洁员工作档期不覆盖该订单时段（" + need + "），请选择其他保洁员或调整时间");
         }
 
         // 3. 插入 dispatch_record（手动派单，待保洁员响应）

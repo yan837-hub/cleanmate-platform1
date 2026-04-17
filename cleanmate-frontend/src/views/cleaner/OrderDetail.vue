@@ -158,6 +158,27 @@
       <template v-if="order.status === 6">
         <el-result icon="success" title="订单已完成"
           :sub-title="`实际金额：¥${order.actualFee}，完成时间：${formatTime(order.completedAt)}`" />
+        <!-- 顾客评价 -->
+        <div v-if="orderReview" style="margin-top:12px;padding:12px;background:#f9fafb;border-radius:6px">
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">顾客评价</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">
+            <span>服务态度 <el-rate :model-value="orderReview.scoreAttitude" disabled size="small" /></span>
+            <span>清洁效果 <el-rate :model-value="orderReview.scoreQuality" disabled size="small" /></span>
+            <span>准时到达 <el-rate :model-value="orderReview.scorePunctual" disabled size="small" /></span>
+          </div>
+          <div v-if="orderReview.content" style="margin-top:8px;color:#6b7280;font-size:13px">{{ orderReview.content }}</div>
+          <div v-if="orderReview.imgs" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            <el-image
+              v-for="url in orderReview.imgs.split(',')"
+              :key="url"
+              :src="url"
+              style="width:72px;height:72px;border-radius:4px;object-fit:cover"
+              :preview-src-list="orderReview.imgs.split(',')"
+              fit="cover"
+            />
+          </div>
+        </div>
+        <div v-else style="margin-top:8px;font-size:13px;color:#9ca3af">顾客暂未评价</div>
       </template>
 
       <!-- 售后处理中 / 已结案 -->
@@ -182,9 +203,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getCleanerOrderDetail, checkin, reportComplete, uploadPhoto, getOrderPhotos, acceptOrder, rejectOrder, cleanerCancelOrder, getRouteHint, getCleanerReschedules, handleReschedule } from '@/api/order'
+import { getCleanerOrderDetail, checkin, reportComplete, uploadPhoto, getOrderPhotos, acceptOrder, rejectOrder, cleanerCancelOrder, getRouteHint, getCleanerReschedules, handleReschedule, getOrderReview } from '@/api/order'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '@/utils/request'
 import { formatTime } from '@/utils/time'
@@ -194,6 +215,7 @@ const route = useRoute()
 const orderId = route.params.id
 
 const order = ref(null)
+const now = ref(new Date())
 const cleanerCancelHours = ref(4) // 默认4小时，加载后从后端覆盖
 const checkinMaxDistM = ref(500)  // 默认500m，加载后从后端覆盖
 const loading = ref(false)
@@ -211,14 +233,13 @@ const checkinWindowStart = computed(() => {
 const checkinWindowEnd = computed(() => {
   if (!order.value?.appointTime) return null
   const t = new Date(order.value.appointTime)
-  const duration = order.value.serviceDuration ?? 60
+  const duration = order.value.planDuration ?? 60
   t.setMinutes(t.getMinutes() + duration)
   return t
 })
 const canCheckin = computed(() => {
   if (!checkinWindowStart.value || !checkinWindowEnd.value) return false
-  const now = new Date()
-  return now >= checkinWindowStart.value && now <= checkinWindowEnd.value
+  return now.value >= checkinWindowStart.value && now.value <= checkinWindowEnd.value
 })
 
 function formatDate(d) {
@@ -230,6 +251,7 @@ const uploading = ref(false)
 const photos = ref([])
 const photoPhase = ref(1)
 const actualDuration = ref(120)
+const orderReview = ref(null)
 
 async function loadOrder() {
   loading.value = true
@@ -238,6 +260,7 @@ async function loadOrder() {
     order.value = data
     if (data.status === 3) getRouteHint(orderId).then(r => { routeHint.value = r }).catch(() => {})
     if (data.status >= 4) await loadPhotos()
+    if (data.status === 6) request.get(`/cleaner/orders/${orderId}/review`).then(r => { orderReview.value = r }).catch(() => {})
     if (data.status === 9) {
       try {
         const list = await getCleanerReschedules(orderId)
@@ -462,12 +485,15 @@ function resultLabel(r) { return RESULT_MAP[r]?.text ?? '-' }
 function resultTagType(r) { return RESULT_MAP[r]?.type ?? '' }
 
 
+let nowTimer = null
 onMounted(async () => {
   loadOrder()
+  nowTimer = setInterval(() => { now.value = new Date() }, 10000)
   try {
     const cfg = await request.get('/public/config', { params: { keys: 'cleaner_cancel_hours,checkin_max_distance_m' } })
     if (cfg?.cleaner_cancel_hours) cleanerCancelHours.value = Number(cfg.cleaner_cancel_hours)
     if (cfg?.checkin_max_distance_m) checkinMaxDistM.value = Number(cfg.checkin_max_distance_m)
   } catch { /* 保持默认值 */ }
 })
+onUnmounted(() => { clearInterval(nowTimer) })
 </script>

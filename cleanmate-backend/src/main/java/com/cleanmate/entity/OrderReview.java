@@ -53,4 +53,13 @@ public class OrderReview implements Serializable {
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
+
+    @TableField(exist = false)
+    private String customerNickname;
+
+    @TableField(exist = false)
+    private String cleanerNickname;
+
+    @TableField(exist = false)
+    private String orderNo;
 }

@@ -43,6 +43,11 @@
           <span>投诉处理</span>
         </el-menu-item>
 
+        <el-menu-item index="/admin/reviews">
+          <el-icon><Star /></el-icon>
+          <span>评价管理</span>
+        </el-menu-item>
+
         <el-menu-item index="/admin/stats">
           <el-icon><TrendCharts /></el-icon>
           <span>数据统计</span>
@@ -99,7 +104,7 @@
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
-import { User, Setting, Document, Warning } from '@element-plus/icons-vue'
+import { User, Setting, Document, Warning, Star } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()

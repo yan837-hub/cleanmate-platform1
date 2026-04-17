@@ -34,7 +34,7 @@
         <el-col :span="8">
           <div class="stat-box" style="background:#fff7e6">
             <div class="stat-num" style="color:#f59e0b">¥{{ summary.totalCommission }}</div>
-            <div class="stat-lbl">平台佣金（20%）</div>
+            <div class="stat-lbl">平台佣金（{{ commissionRateText }}）</div>
           </div>
         </el-col>
       </el-row>
@@ -86,9 +86,11 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getCleanerIncome } from '@/api/order'
 import { formatTime } from '@/utils/time'
+import request from '@/utils/request'
 
 const loading = ref(false)
 const selectedMonth = ref(new Date().toISOString().slice(0, 7)) // 默认当月
+const commissionRateText = ref('20%') // 默认值，加载后从系统配置覆盖
 
 const summary = ref({ orderCount: 0, totalIncome: 0, totalCommission: 0 })
 const items = ref([])
@@ -114,7 +116,15 @@ async function loadIncome() {
   }
 }
 
-onMounted(loadIncome)
+onMounted(async () => {
+  loadIncome()
+  try {
+    const cfg = await request.get('/public/config', { params: { keys: 'commission_rate' } })
+    if (cfg?.commission_rate) {
+      commissionRateText.value = (parseFloat(cfg.commission_rate) * 100).toFixed(0) + '%'
+    }
+  } catch { /* 保持默认值 */ }
+})
 </script>
 
 <style scoped>

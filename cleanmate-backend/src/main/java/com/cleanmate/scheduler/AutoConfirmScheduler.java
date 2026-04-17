@@ -1,8 +1,10 @@
 package com.cleanmate.scheduler;
 
+import com.cleanmate.entity.CleanerIncome;
 import com.cleanmate.entity.DispatchRecord;
 import com.cleanmate.entity.ServiceOrder;
 import com.cleanmate.enums.OrderStatus;
+import com.cleanmate.service.ICleanerIncomeService;
 import com.cleanmate.service.IDispatchRecordService;
 import com.cleanmate.service.IServiceOrderService;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +16,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 48小时自动确认完成调度器
- * 每小时扫描一次处于"待确认完成"状态且已过期的订单
+ * 自动确认完成调度器
+ * 超时未确认订单自动结算，扫描周期从 system_config 读取
  */
 @Slf4j
 @Component
@@ -24,6 +26,7 @@ public class AutoConfirmScheduler {
 
     private final IServiceOrderService orderService;
     private final IDispatchRecordService dispatchRecordService;
+    private final ICleanerIncomeService cleanerIncomeService;
 
     @Scheduled(fixedRate = 3600_000) // 每小时执行一次
     public void autoConfirm() {
@@ -35,13 +38,27 @@ public class AutoConfirmScheduler {
         if (orders.isEmpty()) return;
 
         for (ServiceOrder order : orders) {
-            order.setStatus(OrderStatus.COMPLETED.getCode());
-            order.setCompletedAt(LocalDateTime.now());
-            orderService.updateById(order);
-            orderService.logStatusChange(order.getId(),
-                    OrderStatus.PENDING_COMPLETE_CONFIRM.getCode(),
-                    OrderStatus.COMPLETED.getCode(),
-                    null, "系统48h自动确认完成");
+            try {
+                order.setStatus(OrderStatus.COMPLETED.getCode());
+                order.setCompletedAt(LocalDateTime.now());
+                order.setPayStatus(2); // 系统强制结算，模拟支付完成
+                orderService.updateById(order);
+                orderService.logStatusChange(order.getId(),
+                        OrderStatus.PENDING_COMPLETE_CONFIRM.getCode(),
+                        OrderStatus.COMPLETED.getCode(),
+                        null, "系统超时自动确认完成并结算");
+
+                // 结算保洁员收入：待结算 → 已结算
+                if (order.getCleanerId() != null) {
+                    cleanerIncomeService.lambdaUpdate()
+                            .eq(CleanerIncome::getOrderId, order.getId())
+                            .set(CleanerIncome::getStatus, 2)
+                            .set(CleanerIncome::getSettledAt, LocalDateTime.now())
+                            .update();
+                }
+            } catch (Exception e) {
+                log.error("[定时任务] 自动确认完成订单 {} 失败", order.getOrderNo(), e);
+            }
         }
         log.info("自动确认完成订单 {} 单", orders.size());
     }
@@ -76,8 +93,8 @@ public class AutoConfirmScheduler {
                 if (OrderStatus.DISPATCHED_PENDING_CONFIRM.getCode().equals(oldStatus)) {
                     dispatchRecordService.lambdaUpdate()
                             .eq(DispatchRecord::getOrderId, order.getId())
-                            .eq(DispatchRecord::getStatus, 1) // 待响应
-                            .set(DispatchRecord::getStatus, 4) // 超时/取消
+                            .eq(DispatchRecord::getStatus, 1)
+                            .set(DispatchRecord::getStatus, 4)
                             .update();
                 }
 
@@ -92,12 +109,11 @@ public class AutoConfirmScheduler {
     }
 
     /**
-     * 30分钟派单超时：每分钟扫描一次
+     * 派单超时：每分钟扫描
      * 派单待确认(状态2)超过 expireAt 未响应 → 退回待派单(状态1)
      */
     @Scheduled(fixedRate = 60_000)
     public void autoRejectExpiredDispatch() {
-        // 找出所有超时未响应的派单记录（status=1 且 expireAt < now）
         List<DispatchRecord> expired = dispatchRecordService.lambdaQuery()
                 .eq(DispatchRecord::getStatus, 1)
                 .le(DispatchRecord::getExpireAt, LocalDateTime.now())
@@ -108,15 +124,13 @@ public class AutoConfirmScheduler {
         for (DispatchRecord dr : expired) {
             ServiceOrder order = orderService.getById(dr.getOrderId());
             if (order == null || !OrderStatus.DISPATCHED_PENDING_CONFIRM.getCode().equals(order.getStatus())) {
-                // 订单状态已变更，只标记派单记录为超时
                 dispatchRecordService.lambdaUpdate()
                         .eq(DispatchRecord::getId, dr.getId())
-                        .set(DispatchRecord::getStatus, 4) // 4=超时
+                        .set(DispatchRecord::getStatus, 4)
                         .update();
                 continue;
             }
 
-            // 退回待派单
             order.setCleanerId(null);
             order.setStatus(OrderStatus.PENDING_DISPATCH.getCode());
             orderService.updateById(order);
@@ -129,8 +143,8 @@ public class AutoConfirmScheduler {
             orderService.logStatusChange(order.getId(),
                     OrderStatus.DISPATCHED_PENDING_CONFIRM.getCode(),
                     OrderStatus.PENDING_DISPATCH.getCode(),
-                    null, "派单30分钟超时，自动退回待派单池");
+                    null, "派单超时，自动退回待派单池");
         }
-        log.info("派单超时自动退回 {} 单", expired.size());
+        log.info("派单超时自动退回完成");
     }
 }

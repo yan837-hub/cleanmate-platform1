@@ -37,9 +37,9 @@ public class CleanerScheduleTemplateServiceImpl extends ServiceImpl<CleanerSched
      * lockStart/lockEnd 含 30min 通勤缓冲，实际服务时间 = lockStart+30min ~ lockEnd-30min
      */
     @Override
-    public boolean isCleanerAvailable(Long cleanerId, LocalDateTime lockStart, LocalDateTime lockEnd) {
+    public AvailabilityResult checkAvailability(Long cleanerId, LocalDateTime lockStart, LocalDateTime lockEnd) {
         LocalDate date = lockStart.toLocalDate();
-        // 实际服务时间（去掉两端通勤缓冲）
+
         SystemConfig bufferCfg = systemConfigService.lambdaQuery()
                 .eq(SystemConfig::getConfigKey, "commute_buffer_minutes").one();
         long bufferMin = bufferCfg != null ? Long.parseLong(bufferCfg.getConfigValue()) : 30L;
@@ -53,34 +53,36 @@ public class CleanerScheduleTemplateServiceImpl extends ServiceImpl<CleanerSched
                 .one();
 
         if (override != null) {
-            // 全天不可接单
-            if (override.getIsOff() != null && override.getIsOff() == 1) return false;
-            // 自定义时段：服务时间必须在 override 窗口内
+            if (override.getIsOff() != null && override.getIsOff() == 1)
+                return AvailabilityResult.SCHEDULE_NOT_COVER;
             if (override.getStartTime() != null && override.getEndTime() != null) {
-                if (serviceStart.isBefore(override.getStartTime()) || serviceEnd.isAfter(override.getEndTime())) {
-                    return false;
-                }
+                if (serviceStart.isBefore(override.getStartTime()) || serviceEnd.isAfter(override.getEndTime()))
+                    return AvailabilityResult.SCHEDULE_NOT_COVER;
             }
         } else {
             // ② 查周模板
-            int dayOfWeek = date.getDayOfWeek().getValue(); // 1=周一 … 7=周日
+            int dayOfWeek = date.getDayOfWeek().getValue();
             CleanerScheduleTemplate template = this.lambdaQuery()
                     .eq(CleanerScheduleTemplate::getCleanerId, cleanerId)
                     .eq(CleanerScheduleTemplate::getDayOfWeek, dayOfWeek)
                     .one();
-            // 该天无模板 = 不工作
-            if (template == null) return false;
-            // 服务时间必须在模板工作时间内
-            if (serviceStart.isBefore(template.getStartTime()) || serviceEnd.isAfter(template.getEndTime())) {
-                return false;
-            }
+            if (template == null)
+                return AvailabilityResult.SCHEDULE_NOT_COVER;
+            if (serviceStart.isBefore(template.getStartTime()) || serviceEnd.isAfter(template.getEndTime()))
+                return AvailabilityResult.SCHEDULE_NOT_COVER;
         }
 
-        // ③ 查时段锁定，无冲突才可用
-        return !timeLockService.lambdaQuery()
+        // ③ 查时段锁定
+        boolean conflict = timeLockService.lambdaQuery()
                 .eq(CleanerTimeLock::getCleanerId, cleanerId)
                 .lt(CleanerTimeLock::getLockStart, lockEnd)
                 .gt(CleanerTimeLock::getLockEnd, lockStart)
                 .exists();
+        return conflict ? AvailabilityResult.TIME_LOCK_CONFLICT : AvailabilityResult.OK;
+    }
+
+    @Override
+    public boolean isCleanerAvailable(Long cleanerId, LocalDateTime lockStart, LocalDateTime lockEnd) {
+        return checkAvailability(cleanerId, lockStart, lockEnd) == AvailabilityResult.OK;
     }
 }

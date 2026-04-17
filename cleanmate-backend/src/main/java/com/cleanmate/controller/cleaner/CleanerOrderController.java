@@ -353,6 +353,19 @@ public class CleanerOrderController {
                 page.getRecords(), page.getTotal(), page.getCurrent(), page.getSize()));
     }
 
+    /** 查询指定订单的顾客评价（供保洁员查看自己被评价的内容） */
+    @GetMapping("/{orderId}/review")
+    public Result<OrderReview> getOrderReview(@PathVariable Long orderId, Authentication auth) {
+        Long cleanerId = (Long) auth.getPrincipal();
+        ServiceOrder order = orderService.getById(orderId);
+        if (order == null || !cleanerId.equals(order.getCleanerId())) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_BELONG_TO_USER);
+        }
+        OrderReview review = orderReviewService.lambdaQuery()
+                .eq(OrderReview::getOrderId, orderId).one();
+        return Result.success(review);
+    }
+
     /** 保洁员回复评价（每条评价只能回复一次） */
     @PutMapping("/reviews/{reviewId}/reply")
     public Result<Void> replyReview(@PathVariable Long reviewId,
@@ -607,6 +620,7 @@ public class CleanerOrderController {
                 ? "&paths=4,0x3366FF,1,,:" + polyline
                 : "";
 
+        // 不指定 zoom，让高德静态地图 API 自动 fit 所有标记点和路径
         String staticMapUrl = "https://restapi.amap.com/v3/staticmap"
                 + "?markers=mid,0xFF0000,A:" + prevLng + "," + prevLat
                 + "|mid,0x0000FF,B:" + curLng + "," + curLat

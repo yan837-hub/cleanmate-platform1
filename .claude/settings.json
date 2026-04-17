@@ -7,7 +7,9 @@
       "Bash(xargs grep:*)",
       "Bash(grep -E \"\\\\.class$|\\\\.jar$|target/|node_modules/\")",
       "Bash(find /f/cleanmate-platform/cleanmate-frontend/src/views -name \"*.vue\" -exec grep -l \"console.log\\\\|debugger\" {} \\\\;)",
-      "Bash(git -C f:/cleanmate-platform rm -r --cached cleanmate-backend/target/)"
+      "Bash(git -C f:/cleanmate-platform rm -r --cached cleanmate-backend/target/)",
+      "Bash(python3 -c ':*)",
+      "Read(//c/Users/xee/Desktop/**)"
     ]
   }
 }

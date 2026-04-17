@@ -7,15 +7,22 @@ import java.time.LocalDateTime;
 
 public interface ICleanerScheduleTemplateService extends IService<CleanerScheduleTemplate> {
 
+    /** 档期检查结果 */
+    enum AvailabilityResult {
+        /** 可接单 */
+        OK,
+        /** 工作档期（周模板/特殊调整）不覆盖该时段 */
+        SCHEDULE_NOT_COVER,
+        /** 该时段已有订单（时间锁冲突） */
+        TIME_LOCK_CONFLICT
+    }
+
     /**
-     * 判断保洁员在指定时段是否可接单（供派单模块内部调用，不暴露为接口）
-     * 优先级：override > template > 返回false
-     * 同时检查 cleaner_time_lock 时段冲突
-     *
-     * @param cleanerId 保洁员user_id
-     * @param lockStart 锁定开始时间（含通勤缓冲，= appointTime - 30min）
-     * @param lockEnd   锁定结束时间（含通勤缓冲，= appointTime + planDuration + 30min）
-     * @return true=可接单
+     * 检查保洁员档期，返回具体失败原因。
+     * 优先级：override > template，再查 time_lock。
      */
+    AvailabilityResult checkAvailability(Long cleanerId, LocalDateTime lockStart, LocalDateTime lockEnd);
+
+    /** 便捷方法：仅返回 true/false，内部调用 checkAvailability */
     boolean isCleanerAvailable(Long cleanerId, LocalDateTime lockStart, LocalDateTime lockEnd);
 }

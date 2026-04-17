@@ -181,3 +181,15 @@ export function getAbnormalCheckins(params) {
 export function handleAbnormalCheckin(id, remark) {
   return request.put(`/admin/orders/checkins/${id}/handle`, { remark })
 }
+
+export function getAdminReviews(params) {
+  return request.get('/admin/reviews', { params })
+}
+
+export function hideReview(id, hideReason) {
+  return request.put(`/admin/reviews/${id}/hide`, { hideReason })
+}
+
+export function showReview(id) {
+  return request.put(`/admin/reviews/${id}/show`)
+}
