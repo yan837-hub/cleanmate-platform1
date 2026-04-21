@@ -53,7 +53,7 @@
         </span>
       </template>
 
-      <el-table :data="activeTab === 'expired' ? expiredList : list" v-loading="loading" stripe>
+      <el-table :data="activeTab === 'expired' ? expiredList : list" v-loading="loading">
         <el-table-column label="订单号" prop="orderNo" width="200" />
         <el-table-column label="服务类型" prop="serviceTypeName" width="100" />
         <el-table-column label="来源" width="90">
@@ -246,7 +246,7 @@ function statusType(s) {
   return { 1:'info', 2:'warning', 3:'', 4:'primary', 5:'warning', 6:'success', 7:'danger', 8:'info', 9:'warning' }[s] ?? 'info'
 }
 function sourceType(s) {
-  return { 1: '', 2: 'warning', 3: 'info' }[s] ?? ''
+  return { 1: 'primary', 2: 'warning', 3: 'info' }[s] ?? 'primary'
 }
 function fmt(t) { return t ? t.replace('T', ' ').slice(0, 16) : '-' }
 

@@ -2,10 +2,13 @@
   <el-container class="app-container">
     <el-header class="header">
       <div class="header-inner">
-        <span class="brand">CleanMate <small>保洁员端</small></span>
-        <el-menu mode="horizontal" :router="true" :default-active="$route.path" class="nav-menu" active-text-color="#10b981">
+        <div class="brand">
+          <span class="brand-text">CleanMate</span>
+          <span class="brand-badge">保洁员端</span>
+        </div>
+        <el-menu mode="horizontal" :router="true" :default-active="$route.path" class="nav-menu">
           <el-menu-item index="/cleaner/home">工作台</el-menu-item>
-          <el-menu-item index="/cleaner/grab">抢单池</el-menu-item>
+          <el-menu-item index="/cleaner/grab">接单大厅</el-menu-item>
           <el-menu-item index="/cleaner/orders">
             <el-badge :value="pendingDispatchCount || ''" :hidden="!pendingDispatchCount" type="danger">
               我的订单
@@ -16,13 +19,14 @@
           <el-menu-item index="/cleaner/reviews">我的评价</el-menu-item>
         </el-menu>
         <div class="header-right">
-          <!-- 消息铃铛 -->
           <el-badge :value="unreadCount || ''" :hidden="!unreadCount" type="danger" style="margin-right:16px">
             <el-button :icon="Bell" circle size="small" @click="$router.push('/cleaner/notifications')" />
           </el-badge>
           <el-dropdown trigger="click" @command="handleCommand">
             <span class="user-info">
-              <el-avatar :size="32">{{ userStore.userInfo?.nickname?.charAt(0) }}</el-avatar>
+              <el-avatar :size="32" style="background:#C8D4C4;color:#4A6A44;font-weight:600">
+                {{ userStore.userInfo?.nickname?.charAt(0) }}
+              </el-avatar>
               <span class="username">{{ userStore.userInfo?.nickname }}</span>
             </span>
             <template #dropdown>
@@ -59,7 +63,6 @@ const userStore = useUserStore()
 
 const pendingDispatchCount = ref(0)
 const unreadCount = ref(0)
-// null 表示首次加载，不弹窗；之后用来检测是否有新消息
 let lastKnownCount = null
 
 async function refreshBadge() {
@@ -73,10 +76,8 @@ async function refreshUnread() {
   try {
     const count = await getUnreadCount()
     if (lastKnownCount === null) {
-      // 首次加载：只记录基准值，不弹窗
       lastKnownCount = count
     } else if (count > lastKnownCount) {
-      // 有新消息到来：弹出通知，展示最新一条内容
       try {
         const msgs = await getNotifications()
         const latest = msgs.find(m => m.isRead === 0)
@@ -125,43 +126,84 @@ function handleCommand(command) {
 </script>
 
 <style scoped>
-.app-container { min-height: 100vh; background: #f9fafb; }
+.app-container {
+  min-height: 100vh;
+  background: #F8F7F4;
+
+  /* Element Plus 主色覆盖为莫兰迪鼠尾草绿 */
+  --el-color-primary:         #8FA888;
+  --el-color-primary-dark-2:  #7A9A72;
+  --el-color-primary-light-3: #B8CCBA;
+  --el-color-primary-light-5: #C8D8C8;
+  --el-color-primary-light-7: #DAE6DA;
+  --el-color-primary-light-8: #E4EEE4;
+  --el-color-primary-light-9: #EDF4ED;
+}
+
 .header {
-  background: #fff;
-  border-bottom: 1px solid #e4e4e7;
+  background: #FEFEFE;
+  border-bottom: 1px solid #EDE8DF;
   padding: 0;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  box-shadow: 0 1px 4px rgba(58,55,52,.05);
 }
+
 .header-inner {
   max-width: 1440px; margin: 0 auto; height: 60px;
   display: flex; align-items: center; gap: 24px;
   padding: 0 32px; box-sizing: border-box;
 }
-.brand { font-size: 20px; font-weight: 700; color: #18181b; flex-shrink: 0; letter-spacing: -0.5px; }
-.brand small { font-size: 13px; color: #10b981; font-weight: 500; margin-left: 2px; }
-.nav-menu { flex: 1; border-bottom: none; }
-.header-right { margin-left: auto; }
-.user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.username { font-size: 14px; color: #3f3f46; }
 
-/* 保洁员端导航激活色：翠绿 */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.brand-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: #3A3734;
+  letter-spacing: -0.5px;
+}
+.brand-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8FA888;
+  background: #EDF4ED;
+  border-radius: 4px;
+  padding: 2px 7px;
+  line-height: 1.5;
+}
+
+.nav-menu { flex: 1; border-bottom: none; background: transparent !important; }
+.header-right { margin-left: auto; display: flex; align-items: center; }
+
+.user-info { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.username { font-size: 15px; color: #5A5450; }
+
+/* 保洁员端导航激活色：莫兰迪鼠尾草绿 */
 :deep(.el-menu--horizontal > .el-menu-item.is-active) {
-  border-bottom-color: #10b981 !important;
-  color: #10b981 !important;
+  border-bottom-color: #8FA888 !important;
+  color: #8FA888 !important;
 }
 :deep(.el-menu--horizontal > .el-menu-item:not(.is-disabled):hover) {
-  color: #10b981 !important;
+  color: #8FA888 !important;
 }
 :deep(.el-menu--horizontal) {
   --el-menu-hover-bg-color: transparent;
+  --el-menu-bg-color: transparent;
+}
+:deep(.el-menu--horizontal > .el-menu-item) {
+  color: #5A5450;
+  font-size: 15px !important;
 }
 
 .el-main-wrap {
   padding: 0 !important;
-  background: #f9fafb;
+  background: #F8F7F4;
 }
 .main-content {
   max-width: 1440px;

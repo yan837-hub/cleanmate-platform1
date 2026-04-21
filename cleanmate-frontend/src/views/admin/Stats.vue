@@ -45,7 +45,7 @@
               <el-tag type="info" size="small">近{{ period }}天</el-tag>
             </div>
           </template>
-          <el-table :data="trendRows" v-loading="loading" size="small" stripe max-height="360">
+          <el-table :data="trendRows" v-loading="loading" size="small" max-height="360">
             <el-table-column label="日期" prop="date" width="105" />
             <el-table-column label="新增" prop="created" width="70" align="right" />
             <el-table-column label="完成" prop="completed" width="70" align="right">

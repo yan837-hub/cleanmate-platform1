@@ -21,13 +21,16 @@
 
     <!-- 列表 -->
     <el-card>
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table :data="list" v-loading="loading">
         <el-table-column label="订单号" prop="orderNo" width="200" />
         <el-table-column label="顾客" prop="customerNickname" width="100" />
         <el-table-column label="保洁员" prop="cleanerNickname" width="100" />
-        <el-table-column label="综合评分" width="100">
+        <el-table-column label="综合评分" width="110">
           <template #default="{ row }">
-            <el-rate :model-value="Number(row.avgScore)" disabled show-score />
+            <span :class="row.avgScore >= 4.8 ? 'score-high' : row.avgScore >= 4.5 ? 'score-mid' : 'score-low'"
+                  style="font-size:15px">
+              {{ Number(row.avgScore).toFixed(1) }} ★
+            </span>
           </template>
         </el-table-column>
         <el-table-column label="评价内容" prop="content" min-width="160" show-overflow-tooltip />

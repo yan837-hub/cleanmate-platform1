@@ -299,7 +299,7 @@ function priceModeText(mode) { return { 1: '按小时', 2: '按面积', 3: '固�
 function priceModeTag(mode)  { return { 1: 'primary', 2: 'warning', 3: 'success' }[mode] || '' }
 function priceUnit(mode)     { return { 1: '/小时', 2: '/㎡', 3: '/次' }[mode] || '' }
 
-const ICON_COLORS = ['#4f46e5','#0891b2','#059669','#d97706','#dc2626','#7c3aed','#db2777','#2563eb']
+const ICON_COLORS = ['#818cf8','#22d3ee','#34d399','#fbbf24','#f87171','#a78bfa','#f472b6','#60a5fa']
 function iconBg(id) { return ICON_COLORS[id % ICON_COLORS.length] }
 </script>
 
@@ -380,11 +380,11 @@ function iconBg(id) { return ICON_COLORS[id % ICON_COLORS.length] }
   flex-wrap: wrap;
 }
 .card-price {
-  font-size: 14px;
-  font-weight: 600;
-  color: #4f46e5;
+  font-size: 17px;
+  font-weight: 700;
+  color: #d97706;
 }
-.card-price small { font-size: 11px; font-weight: 400; color: #999; }
+.card-price small { font-size: 12px; font-weight: 400; color: #aaa; }
 .card-meta-item {
   font-size: 12px;
   color: #bbb;

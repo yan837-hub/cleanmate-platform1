@@ -22,7 +22,7 @@
 
     <!-- 表格 -->
     <el-card>
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table :data="list" v-loading="loading">
         <el-table-column prop="id" label="ID" width="80" />
 
         <el-table-column label="用户信息" min-width="160">

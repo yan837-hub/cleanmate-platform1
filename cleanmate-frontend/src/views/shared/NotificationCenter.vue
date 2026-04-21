@@ -76,23 +76,23 @@ onMounted(load)
   align-items: flex-start;
   gap: 12px;
   padding: 14px 4px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #EDE8DF;
   cursor: pointer;
   transition: background 0.15s;
   border-radius: 4px;
 }
 .notif-item:last-child { border-bottom: none; }
-.notif-item:hover { background: #fafafa; }
-.notif-item.unread { background: #f5f3ff; }
-.notif-item.unread:hover { background: #ede9fe; }
+.notif-item:hover { background: #F5F2EE; }
+.notif-item.unread { background: #E8F0EA; }
+.notif-item.unread:hover { background: #D8E6DB; }
 
 .notif-dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: #5b21b6; flex-shrink: 0; margin-top: 6px;
+  background: #2D4A33; flex-shrink: 0; margin-top: 6px;
 }
 
 .notif-body { flex: 1; min-width: 0; }
-.notif-title { font-size: 14px; font-weight: 600; color: #303133; margin-bottom: 4px; }
-.notif-content { font-size: 13px; color: #606266; margin-bottom: 6px; line-height: 1.5; }
-.notif-time { font-size: 12px; color: #c0c4cc; }
+.notif-title { font-size: 14px; font-weight: 600; color: #3A3734; margin-bottom: 4px; }
+.notif-content { font-size: 13px; color: #5A5450; margin-bottom: 6px; line-height: 1.5; }
+.notif-time { font-size: 12px; color: #B8B0A8; }
 </style>

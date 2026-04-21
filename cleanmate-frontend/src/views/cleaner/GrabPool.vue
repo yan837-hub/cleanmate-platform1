@@ -158,122 +158,64 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 页面标题 */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
-.page-title { font-size: 20px; font-weight: 700; color: #111; margin: 0 0 4px; }
-.page-sub { font-size: 13px; color: #6b7280; margin: 0; }
-.page-sub b { color: #059669; }
+.page-title { font-size: 20px; font-weight: 700; color: #3A3734; margin: 0 0 4px; }
+.page-sub { font-size: 13px; color: #8A857E; margin: 0; }
+.page-sub b { color: #8FA888; }
 
-/* 单列全宽列表 */
-.order-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+.order-list { display: flex; flex-direction: column; gap: 14px; }
 
 .order-card {
-  border-left: 4px solid #f59e0b;
-  border-radius: 10px;
+  border-left: 4px solid #C8D4C4 !important;
+  border-radius: 12px !important;
+  border-color: #EDE8DF !important;
   transition: transform .18s, box-shadow .18s;
 }
-.order-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+.order-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08) !important; }
 
-/* 卡片内部横向布局 */
-.card-inner {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
+.card-inner { display: flex; align-items: center; gap: 24px; }
 .card-left { flex: 1; min-width: 0; }
 .card-right {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  flex-shrink: 0;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 14px; flex-shrink: 0;
 }
 
-.card-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-.order-no { font-size: 12px; color: #9ca3af; }
+.card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.order-no { font-size: 12px; color: #B8B0A8; }
 
-/* 横向 meta 信息行 */
 .card-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
+  display: flex; align-items: center;
+  gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
 }
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 14px;
-  color: #374151;
-}
-.meta-item .el-icon { color: #5b21b6; font-size: 15px; }
-.meta-sep { color: #d1d5db; font-size: 12px; }
+.meta-item { display: flex; align-items: center; gap: 5px; font-size: 14px; color: #3A3734; }
+.meta-item .el-icon { color: #8FA888; font-size: 15px; }
+.meta-sep { color: #D8D2CA; font-size: 12px; }
 
 .card-addr {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  font-size: 13px;
-  color: #6b7280;
-  line-height: 1.5;
+  display: flex; align-items: flex-start;
+  gap: 6px; font-size: 13px; color: #8A857E; line-height: 1.5;
 }
-.card-addr .el-icon { color: #5b21b6; flex-shrink: 0; margin-top: 2px; }
+.card-addr .el-icon { color: #8FA888; flex-shrink: 0; margin-top: 2px; }
 
 .card-remark {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  font-size: 13px;
-  color: #9ca3af;
-  margin-top: 6px;
+  display: flex; align-items: flex-start;
+  gap: 6px; font-size: 13px; color: #B8B0A8; margin-top: 6px;
 }
 .card-remark .el-icon { flex-shrink: 0; margin-top: 2px; }
 
 .distance-badge {
-  font-size: 13px;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 2px 10px;
-  border-radius: 12px;
+  font-size: 12px; color: #8A857E;
+  background: #F5F2EE; padding: 3px 10px; border-radius: 20px;
 }
-.income-wrap {
-  text-align: center;
-}
-.income-label {
-  font-size: 11px;
-  color: #9ca3af;
-  margin-bottom: 2px;
-}
-.income-fee {
-  font-size: 26px;
-  font-weight: 700;
-  color: #059669;
-  white-space: nowrap;
-}
-.origin-fee {
-  font-size: 11px;
-  color: #9ca3af;
-  margin-top: 2px;
-}
+.income-wrap { text-align: center; }
+.income-label { font-size: 11px; color: #8A857E; margin-bottom: 4px; }
+.income-fee { font-size: 26px; font-weight: 700; color: #3A3734; white-space: nowrap; }
+.origin-fee { font-size: 11px; color: #B8B0A8; margin-top: 3px; }
 
-.pagination {
-  margin-top: 28px;
-  display: flex;
-  justify-content: center;
-}
+.pagination { margin-top: 28px; display: flex; justify-content: center; }
 </style>

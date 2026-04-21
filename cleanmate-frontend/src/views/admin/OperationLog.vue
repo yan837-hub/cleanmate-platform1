@@ -28,7 +28,7 @@
 
     <!-- 数据表格 -->
     <el-card shadow="never" style="margin-top:16px">
-      <el-table :data="tableData" v-loading="loading" stripe style="width:100%">
+      <el-table :data="tableData" v-loading="loading" style="width:100%">
         <el-table-column label="时间" prop="createdAt" width="180" sortable>
           <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
         </el-table-column>

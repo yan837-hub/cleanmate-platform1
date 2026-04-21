@@ -16,7 +16,7 @@
           </el-badge>
           <el-dropdown @command="handleCommand">
             <span class="user-info">
-              <el-avatar :size="32" :src="userStore.userInfo?.avatarUrl" style="background:#0ea5e9">
+              <el-avatar :size="32" :src="userStore.userInfo?.avatarUrl" style="background:#A3BDA9;color:#2D4A33">
                 {{ userStore.userInfo?.nickname?.charAt(0) }}
               </el-avatar>
               <span class="username">{{ userStore.userInfo?.nickname }}</span>
@@ -84,16 +84,28 @@ function handleCommand(command) {
 </script>
 
 <style scoped>
-.app-container { min-height: 100vh; background: #f9fafb; }
+.app-container {
+  min-height: 100vh;
+  background: #F8F7F4;
+
+  /* Element Plus 主色覆盖为墨绿，作用于所有顾客端子页面 */
+  --el-color-primary:         #2D4A33;
+  --el-color-primary-dark-2:  #1F3324;
+  --el-color-primary-light-3: #4A6B52;
+  --el-color-primary-light-5: #6B8C73;
+  --el-color-primary-light-7: #A3BDA9;
+  --el-color-primary-light-8: #C8D8CB;
+  --el-color-primary-light-9: #E8F0EA;
+}
 
 .header {
-  background: #fff;
-  border-bottom: 1px solid #e4e4e7;
+  background: #FEFEFE;
+  border-bottom: 1px solid #EDE8DF;
   padding: 0;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  box-shadow: 0 1px 4px rgba(58,55,52,.06);
 }
 
 .header-inner {
@@ -110,12 +122,12 @@ function handleCommand(command) {
 .brand {
   font-size: 20px;
   font-weight: 700;
-  color: #18181b;
+  color: #3A3734;
   flex-shrink: 0;
   letter-spacing: -0.5px;
 }
 
-.nav-menu { flex: 1; border-bottom: none; }
+.nav-menu { flex: 1; border-bottom: none; background: transparent !important; }
 .header-right { margin-left: auto; }
 
 .user-info {
@@ -124,23 +136,32 @@ function handleCommand(command) {
   gap: 8px;
   cursor: pointer;
 }
-.username { font-size: 14px; color: #3f3f46; }
+.username { font-size: 15px; color: #5A5450; }
 
-/* 顾客端导航激活色：天蓝 */
+/* 顾客端导航激活色：墨绿 */
 :deep(.el-menu--horizontal > .el-menu-item.is-active) {
-  border-bottom-color: #0ea5e9 !important;
-  color: #0ea5e9 !important;
+  border-bottom-color: #2D4A33 !important;
+  color: #2D4A33 !important;
 }
 :deep(.el-menu--horizontal > .el-menu-item:not(.is-disabled):hover) {
-  color: #0ea5e9 !important;
+  color: #2D4A33 !important;
 }
 :deep(.el-menu--horizontal) {
   --el-menu-hover-bg-color: transparent;
+  --el-menu-bg-color: transparent;
+}
+:deep(.el-menu--horizontal > .el-menu-item) {
+  color: #5A5450;
+  font-size: 15px !important;
+}
+:deep(.el-avatar) {
+  background: #A3BDA9 !important;
+  color: #2D4A33 !important;
 }
 
 .el-main-wrap {
   padding: 0 !important;
-  background: #f9fafb;
+  background: #F8F7F4;
 }
 .main-content {
   max-width: 1440px;

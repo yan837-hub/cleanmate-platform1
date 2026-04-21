@@ -231,9 +231,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-title { font-size: 20px; font-weight: 700; color: #111; margin: 0 0 20px; }
+.page-title { font-size: 20px; font-weight: 700; color: #3A3734; margin: 0 0 20px; }
 .user-info-row { display: flex; align-items: center; gap: 16px; }
-.avatar { background: #2563eb; color: #fff; font-size: 20px; font-weight: 700; flex-shrink: 0; }
-.user-name { font-size: 18px; font-weight: 700; color: #111; }
-.user-phone { font-size: 14px; color: #9ca3af; margin-top: 4px; }
+.avatar { background: #A3BDA9 !important; color: #2D4A33 !important; font-size: 20px; font-weight: 700; flex-shrink: 0; }
+.user-name { font-size: 18px; font-weight: 700; color: #3A3734; }
+.user-phone { font-size: 14px; color: #8A857E; margin-top: 4px; }
 </style>

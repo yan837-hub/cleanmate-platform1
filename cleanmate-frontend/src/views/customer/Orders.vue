@@ -185,7 +185,7 @@ onMounted(loadOrders)
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
-.page-title { font-size: 20px; font-weight: 700; color: #111; margin: 0; }
+.page-title { font-size: 20px; font-weight: 700; color: #3A3734; margin: 0; }
 
 .orders-card { border-radius: 12px; }
 .order-tabs { margin-bottom: 4px; }
@@ -196,7 +196,7 @@ onMounted(loadOrders)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid #e0e7ff;
+  border: 1px solid #EDE8DF;
   border-radius: var(--cm-radius-md);
   padding: 18px 20px;
   margin-bottom: 12px;
@@ -205,8 +205,8 @@ onMounted(loadOrders)
   gap: 16px;
 }
 .order-card:hover {
-  border-color: var(--cm-primary);
-  box-shadow: 0 4px 16px rgba(14,165,233,.12);
+  border-color: #2D4A33;
+  box-shadow: 0 4px 16px rgba(45,74,51,.14);
   transform: translateY(-1px);
 }
 
@@ -217,17 +217,17 @@ onMounted(loadOrders)
   gap: 10px;
   margin-bottom: 6px;
 }
-.order-service { font-size: 16px; font-weight: 600; color: #111; }
-.order-no { font-size: 12px; color: #9ca3af; margin-bottom: 8px; }
+.order-service { font-size: 16px; font-weight: 600; color: #3A3734; }
+.order-no { font-size: 12px; color: #B8B0A8; margin-bottom: 8px; }
 .order-meta {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #6b7280;
+  color: #8A857E;
   flex-wrap: wrap;
 }
-.meta-sep { color: #d1d5db; }
+.meta-sep { color: #D8D2CA; }
 .meta-item { display: inline-flex; align-items: center; gap: 3px; }
 
 .order-card-right {
@@ -237,8 +237,8 @@ onMounted(loadOrders)
   gap: 10px;
   flex-shrink: 0;
 }
-.order-fee { font-size: 20px; font-weight: 700; color: #ef4444; }
-.fee-tip { font-size: 11px; font-weight: 400; color: #9ca3af; margin-left: 2px; }
+.order-fee { font-size: 20px; font-weight: 700; color: #3A3734; }
+.fee-tip { font-size: 11px; font-weight: 400; color: #B8B0A8; margin-left: 2px; }
 .order-actions { display: flex; gap: 8px; }
 
 .pagination-wrap { margin-top: 20px; display: flex; justify-content: flex-end; }

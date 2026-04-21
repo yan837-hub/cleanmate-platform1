@@ -73,7 +73,7 @@
           </div>
           <div class="summary-row">
             <span><el-icon style="vertical-align:-2px"><Clock /></el-icon> {{ fmt(selectedOrder.appointTime) }}</span>
-            <span>预估费用：<strong style="color:#ef4444">¥{{ selectedOrder.estimateFee }}</strong></span>
+            <span>预估费用：<strong style="color:#d97706;font-size:15px">¥{{ selectedOrder.estimateFee }}</strong></span>
           </div>
           <div class="summary-addr">
             <el-icon style="vertical-align:-2px"><Location /></el-icon>
@@ -109,7 +109,7 @@
           />
           <div v-for="c in candidates" :key="c.userId" class="cleaner-card">
             <div class="cleaner-main">
-              <el-avatar :size="44" style="background:#5b21b6;flex-shrink:0;font-size:18px">
+              <el-avatar :size="44" style="background:#B4C4D4;flex-shrink:0;font-size:18px">
                 {{ (c.realName || '?').charAt(0) }}
               </el-avatar>
               <div class="cleaner-info">
@@ -208,8 +208,8 @@ function sourceLabel(source) {
 }
 
 function sourceTagType(source) {
-  const map = { 1: 'success', 2: 'warning', 3: 'info' }
-  return map[source] ?? ''
+  const map = { 1: 'primary', 2: 'warning', 3: 'info' }
+  return map[source] ?? 'primary'
 }
 
 // ── 加载待处理订单 ──────────────────────────────────────
@@ -332,11 +332,12 @@ onUnmounted(() => clearInterval(pollTimer))
 
 /* ── 左侧面板 ── */
 .left-panel {
-  width: 340px;
+  width: 300px;
   flex-shrink: 0;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  background: #FFFFFF;
+  border: 1px solid #F0F0EB;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(74,74,74,.05);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -345,9 +346,10 @@ onUnmounted(() => clearInterval(pollTimer))
 /* ── 右侧面板 ── */
 .right-panel {
   flex: 1;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  background: #FFFFFF;
+  border: 1px solid #F0F0EB;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(74,74,74,.05);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -360,45 +362,43 @@ onUnmounted(() => clearInterval(pollTimer))
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #F0F0EB;
+  background: #FAFAF5;
   flex-shrink: 0;
 }
 
 .panel-title {
   font-size: 15px;
   font-weight: 600;
-  color: #1f2937;
+  color: #4A4A4A;
 }
 
 /* ── 左侧订单列表 ── */
-.order-scroll {
-  flex: 1;
-  overflow: hidden;
-}
+.order-scroll { flex: 1; overflow: hidden; }
 
-.loading-wrap {
-  padding: 16px;
-}
+.loading-wrap { padding: 16px; }
 
 .order-card {
   margin: 8px 10px;
   padding: 12px 14px;
-  border: 1px solid #e4e7ed;
-  border-left: 4px solid #f59e0b;
+  border: 1px solid #F0F0EB;
+  border-left: 3px solid #D1D5DB;
   border-radius: 8px;
   cursor: pointer;
   transition: all .15s;
+  background: #FFFFFF;
 }
 
 .order-card:hover {
-  border-color: #a78bfa;
-  background: #faf5ff;
+  border-color: #B4C4D4;
+  border-left-color: #B4C4D4;
+  background: #F0F4F8;
 }
 
 .order-card.active {
-  border-color: #7c3aed;
-  border-left-color: #7c3aed;
-  background: #f5f3ff;
+  border-color: #8A9AAB;
+  border-left-color: #8A9AAB;
+  background: #F0F4F8;
 }
 
 .card-top {
@@ -411,15 +411,15 @@ onUnmounted(() => clearInterval(pollTimer))
 .svc-name {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: #4A4A4A;
 }
 
 .card-row {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
-  color: #6b7280;
+  font-size: 13px;
+  color: #9CA3AF;
   margin-bottom: 4px;
 }
 
@@ -427,7 +427,7 @@ onUnmounted(() => clearInterval(pollTimer))
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 220px;
+  max-width: 200px;
 }
 
 .card-bottom {
@@ -438,14 +438,14 @@ onUnmounted(() => clearInterval(pollTimer))
 }
 
 .fee {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
-  color: #ef4444;
+  color: #d97706;
 }
 
 .pagination-wrap {
   padding: 8px 10px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid #F0F0EB;
   flex-shrink: 0;
 }
 
@@ -460,9 +460,9 @@ onUnmounted(() => clearInterval(pollTimer))
 /* ── 订单摘要 ── */
 .order-summary {
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #F0F0EB;
   flex-shrink: 0;
-  background: #fafaf9;
+  background: #FAFAF5;
 }
 
 .summary-header {
@@ -474,21 +474,21 @@ onUnmounted(() => clearInterval(pollTimer))
 
 .summary-title {
   font-size: 16px;
-  font-weight: 700;
-  color: #1f2937;
+  font-weight: 600;
+  color: #4A4A4A;
 }
 
 .summary-row {
   display: flex;
   gap: 24px;
-  font-size: 13px;
-  color: #4b5563;
+  font-size: 14px;
+  color: #9CA3AF;
   margin-bottom: 6px;
 }
 
 .summary-addr {
-  font-size: 13px;
-  color: #6b7280;
+  font-size: 14px;
+  color: #9CA3AF;
   margin-bottom: 8px;
 }
 
@@ -500,18 +500,13 @@ onUnmounted(() => clearInterval(pollTimer))
 
 .summary-customer {
   font-size: 13px;
-  color: #6b7280;
+  color: #9CA3AF;
 }
 
 /* ── 候选保洁员列表 ── */
-.candidate-header {
-  border-top: none;
-}
+.candidate-header { border-top: none; }
 
-.candidate-scroll {
-  flex: 1;
-  overflow: hidden;
-}
+.candidate-scroll { flex: 1; overflow: hidden; }
 
 .cleaner-card {
   display: flex;
@@ -519,13 +514,15 @@ onUnmounted(() => clearInterval(pollTimer))
   align-items: center;
   margin: 8px 12px;
   padding: 14px 16px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid #F0F0EB;
   border-radius: 8px;
-  transition: border-color .15s;
+  transition: all .15s;
+  background: #FFFFFF;
 }
 
 .cleaner-card:hover {
-  border-color: #a78bfa;
+  border-color: #B4C4D4;
+  background: #F0F4F8;
 }
 
 .cleaner-main {
@@ -536,10 +533,7 @@ onUnmounted(() => clearInterval(pollTimer))
   min-width: 0;
 }
 
-.cleaner-info {
-  flex: 1;
-  min-width: 0;
-}
+.cleaner-info { flex: 1; min-width: 0; }
 
 .cleaner-name-row {
   display: flex;
@@ -552,28 +546,26 @@ onUnmounted(() => clearInterval(pollTimer))
 .cleaner-name {
   font-size: 15px;
   font-weight: 600;
-  color: #1f2937;
+  color: #4A4A4A;
 }
 
 .cleaner-meta {
   display: flex;
   gap: 16px;
   font-size: 13px;
-  color: #6b7280;
+  color: #9CA3AF;
   margin-bottom: 4px;
 }
 .meta-item { display: inline-flex; align-items: center; gap: 3px; }
 
 .prev-addr {
   font-size: 12px;
-  color: #9ca3af;
+  color: #D1D5DB;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 /* ── 弹窗 ── */
-.confirm-body {
-  padding: 0 4px;
-}
+.confirm-body { padding: 0 4px; }
 </style>

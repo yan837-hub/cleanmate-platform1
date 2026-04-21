@@ -93,12 +93,8 @@ onMounted(loadOrders)
   align-items: center;
   margin-bottom: 20px;
 }
-.page-title { font-size: 20px; font-weight: 700; color: #111; margin: 0; }
+.page-title { font-size: 20px; font-weight: 700; color: #3A3734; margin: 0; }
 .table-card { border-radius: var(--cm-radius-md); }
-.fee-text { font-weight: 600; color: #ef4444; }
-.pagination-wrap {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
+.fee-text { font-weight: 600; color: #3A3734; }
+.pagination-wrap { margin-top: 20px; display: flex; justify-content: flex-end; }
 </style>

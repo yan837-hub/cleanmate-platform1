@@ -29,7 +29,7 @@
         <span style="float:right;font-size:13px;color:#909399">共 {{ total }} 条</span>
       </template>
 
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table :data="list" v-loading="loading">
         <el-table-column label="公司名称" prop="name" min-width="160" show-overflow-tooltip />
         <el-table-column label="营业执照号" prop="licenseNo" width="180" />
         <el-table-column label="联系人" prop="contactName" width="90" />

@@ -11,7 +11,7 @@
             <el-icon :size="20" :color="card.color"><component :is="card.icon" /></el-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">{{ card.value }}</div>
+            <div class="stat-value" :style="{ color: card.color }">{{ card.value }}</div>
             <div class="stat-label">{{ card.label }}</div>
           </div>
           <el-badge v-if="card.badge" :value="card.badge" class="card-badge" type="danger" />
@@ -84,7 +84,7 @@
           <el-button type="primary" link @click="$router.push('/admin/audit/cleaners')">查看全部 →</el-button>
         </div>
       </template>
-      <el-table :data="rankList" v-loading="rankLoading" size="small" stripe>
+      <el-table :data="rankList" v-loading="rankLoading" size="small">
         <el-table-column label="排名" width="60" align="center">
           <template #default="{ $index }">
             <span :class="['rank-badge', `rank-${$index + 1}`]">{{ $index + 1 }}</span>
@@ -115,7 +115,7 @@
         <el-table-column label="平均评分" width="90" align="center" sortable
                          :sort-method="(a,b) => a.avgScore - b.avgScore">
           <template #default="{ row }">
-            <span style="color:#f59e0b;font-weight:600">
+            <span style="color:#d97706;font-weight:600">
               {{ Number(row.avgScore).toFixed(1) }}
             </span>
           </template>
@@ -158,18 +158,18 @@ const router = useRouter()
 // 概览卡片
 // ────────────────────────────────────────────────
 const overviewCards = ref([
-  { label: '今日新增订单', value: 0,    icon: 'Document',    color: '#0ea5e9', bgColor: 'rgba(14,165,233,.1)',  route: '/admin/orders' },
-  { label: '今日完成',     value: 0,    icon: 'CircleCheck', color: '#10b981', bgColor: 'rgba(16,185,129,.1)',  route: null },
-  { label: '进行中',       value: 0,    icon: 'Loading',     color: '#f59e0b', bgColor: 'rgba(245,158,11,.1)',  route: '/admin/orders' },
-  { label: '今日收入',     value: '¥0', icon: 'Money',       color: '#0d9488', bgColor: 'rgba(13,148,136,.1)',  route: null },
-  { label: '保洁员总数',   value: 0,    icon: 'User',        color: '#6366f1', bgColor: 'rgba(99,102,241,.1)',  route: '/admin/audit/cleaners' },
-  { label: '待审核',       value: 0,    icon: 'Bell',        color: '#f43f5e', bgColor: 'rgba(244,63,94,.1)',   route: '/admin/audit/cleaners', badge: null },
+  { label: '今日新增订单', value: 0,    icon: 'Document',    color: '#2563eb', bgColor: '#eff6ff', route: '/admin/orders' },
+  { label: '今日完成',     value: 0,    icon: 'CircleCheck', color: '#16a34a', bgColor: '#f0fdf4', route: null },
+  { label: '进行中',       value: 0,    icon: 'Loading',     color: '#d97706', bgColor: '#fffbeb', route: '/admin/orders' },
+  { label: '今日收入',     value: '¥0', icon: 'Money',       color: '#7c3aed', bgColor: '#f5f3ff', route: null },
+  { label: '保洁员总数',   value: 0,    icon: 'User',        color: '#0891b2', bgColor: '#ecfeff', route: '/admin/audit/cleaners' },
+  { label: '待审核',       value: 0,    icon: 'Bell',        color: '#dc2626', bgColor: '#fef2f2', route: '/admin/audit/cleaners', badge: null },
 ])
 
 const todoCards = ref([
-  { label: '保洁员资质审核', count: 0, icon: 'UserFilled',   color: '#f43f5e', bgColor: 'rgba(244,63,94,.1)',  route: '/admin/audit/cleaners?tab=pending' },
-  { label: '待派单订单',     count: 0, icon: 'List',         color: '#f59e0b', bgColor: 'rgba(245,158,11,.1)', route: '/admin/dispatch' },
-  { label: '待处理投诉',     count: 0, icon: 'ChatDotRound', color: '#ef4444', bgColor: 'rgba(239,68,68,.1)',  route: '/admin/complaints' },
+  { label: '保洁员资质审核', count: 0, icon: 'UserFilled',   color: '#dc2626', bgColor: '#fef2f2', route: '/admin/audit/cleaners?tab=pending' },
+  { label: '待派单订单',     count: 0, icon: 'List',         color: '#d97706', bgColor: '#fffbeb', route: '/admin/dispatch' },
+  { label: '待处理投诉',     count: 0, icon: 'ChatDotRound', color: '#dc2626', bgColor: '#fef2f2', route: '/admin/complaints' },
 ])
 
 // ────────────────────────────────────────────────
@@ -196,19 +196,19 @@ async function loadTrend() {
     const completed = data.map(d => d.completedOrders ?? 0)
 
     lineChart?.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['新增订单', '完成订单'], top: 0, right: 0 },
+      tooltip: { trigger: 'axis', backgroundColor: '#FFFFFF', borderColor: '#F0F0EB', textStyle: { color: '#4A4A4A' } },
+      legend: { data: ['新增订单', '完成订单'], top: 0, right: 0, textStyle: { color: '#9CA3AF', fontSize: 12 } },
       grid:   { top: 40, left: 48, right: 20, bottom: 30 },
-      xAxis:  { type: 'category', data: dates, axisLine: { lineStyle: { color: '#e5e7eb' } }, axisLabel: { color: '#6b7280' } },
-      yAxis:  { type: 'value',    minInterval: 1, splitLine: { lineStyle: { color: '#f3f4f6' } }, axisLabel: { color: '#6b7280' } },
+      xAxis:  { type: 'category', data: dates, axisLine: { lineStyle: { color: '#F0F0EB' } }, axisLabel: { color: '#9CA3AF', fontSize: 11 } },
+      yAxis:  { type: 'value',    minInterval: 1, splitLine: { lineStyle: { color: '#F0F0EB' } }, axisLabel: { color: '#9CA3AF', fontSize: 11 } },
       series: [
         {
           name: '新增订单', type: 'line', data: newOrders,
           smooth: true, symbol: 'circle', symbolSize: 6,
-          lineStyle: { color: '#0ea5e9', width: 2 },
-          itemStyle: { color: '#0ea5e9' },
+          lineStyle: { color: '#3b82f6', width: 2 },
+          itemStyle: { color: '#3b82f6' },
           areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [{ offset: 0, color: 'rgba(14,165,233,.18)' }, { offset: 1, color: 'rgba(14,165,233,0)' }] } },
+            colorStops: [{ offset: 0, color: 'rgba(59,130,246,.18)' }, { offset: 1, color: 'rgba(59,130,246,0)' }] } },
         },
         {
           name: '完成订单', type: 'line', data: completed,
@@ -229,7 +229,7 @@ async function loadTrend() {
 // 饼图：服务类型
 // ────────────────────────────────────────────────
 const pieLoading = ref(false)
-const PIE_COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#6366f1', '#f43f5e', '#06b6d4', '#0d9488', '#a78bfa']
+const PIE_COLORS = ['#7c3aed', '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#22d3ee', '#f472b6', '#818cf8']
 
 async function loadPie() {
   pieLoading.value = true
@@ -246,8 +246,11 @@ async function loadPie() {
       tooltip: {
         trigger: 'item',
         formatter: '{b}: {c}单 ({d}%)',
+        backgroundColor: '#FFFFFF',
+        borderColor: '#F0F0EB',
+        textStyle: { color: '#4A4A4A' },
       },
-      legend: { orient: 'vertical', right: 10, top: 'center', textStyle: { fontSize: 12 } },
+      legend: { orient: 'vertical', right: 10, top: 'center', textStyle: { fontSize: 12, color: '#9CA3AF' } },
       series: [{
         type: 'pie',
         radius: ['42%', '68%'],
@@ -349,14 +352,15 @@ async function loadOverview() {
 
 /* 概览卡片 */
 .stat-card {
-  background: #fff;
-  border-radius: var(--cm-radius-md);
+  background: #FFFFFF;
+  border-radius: 10px;
+  border: 1px solid #F0F0EB;
   border-top: 3px solid;
   padding: 16px 18px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: var(--cm-shadow-sm);
+  box-shadow: 0 1px 4px rgba(74,74,74,.05);
   position: relative;
   transition: transform .15s, box-shadow .15s;
   width: 100%;
@@ -365,7 +369,7 @@ async function loadOverview() {
 .stat-card.clickable { cursor: pointer; }
 .stat-card.clickable:hover {
   transform: translateY(-2px);
-  box-shadow: var(--cm-shadow-md);
+  box-shadow: 0 4px 16px rgba(74,74,74,.1);
 }
 .stat-icon {
   width: 42px; height: 42px;
@@ -374,12 +378,12 @@ async function loadOverview() {
   flex-shrink: 0;
 }
 .stat-info { flex: 1; min-width: 0; }
-.stat-value { font-size: 22px; font-weight: 700; color: #18181b; line-height: 1.2; }
-.stat-label { font-size: 11px; color: #a1a1aa; margin-top: 3px; }
+.stat-value { font-size: 24px; font-weight: 700; line-height: 1.2; font-family: 'Inter', sans-serif; }
+.stat-label { font-size: 11px; color: #9CA3AF; margin-top: 3px; letter-spacing: 0.2px; }
 .card-badge { position: absolute; top: 10px; right: 12px; }
 
 /* 图表标题栏 */
-.card-title { font-size: 15px; font-weight: 600; color: #111827; }
+.card-title { font-size: 14px; font-weight: 600; color: #4A4A4A; font-family: 'Inter', sans-serif; }
 .chart-header {
   display: flex;
   justify-content: space-between;
@@ -395,28 +399,29 @@ async function loadOverview() {
   border-radius: 50%;
   font-size: 12px;
   font-weight: 700;
-  background: #e5e7eb;
-  color: #374151;
+  background: #F0F0EB;
+  color: #9CA3AF;
 }
-.rank-badge.rank-1 { background: #f59e0b; color: #fff; }
-.rank-badge.rank-2 { background: #9ca3af; color: #fff; }
-.rank-badge.rank-3 { background: #b45309; color: #fff; }
+.rank-badge.rank-1 { background: #eab308; color: #fff; }
+.rank-badge.rank-2 { background: #94a3b8; color: #fff; }
+.rank-badge.rank-3 { background: #f97316; color: #fff; }
 
 /* 完成率颜色 */
 .rate-good { color: #16a34a; font-weight: 600; }
-.rate-mid  { color: #374151; }
+.rate-mid  { color: #f59e0b; font-weight: 600; }
 .rate-bad  { color: #dc2626; font-weight: 600; }
 
 /* 待办快捷操作卡片 */
 .todo-card {
-  background: #fff;
-  border-radius: var(--cm-radius-md);
-  border-left: 4px solid;
+  background: #FFFFFF;
+  border-radius: 10px;
+  border: 1px solid #F0F0EB;
+  border-left: 3px solid;
   padding: 14px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: var(--cm-shadow-sm);
+  box-shadow: 0 1px 4px rgba(74,74,74,.05);
 }
 .todo-left {
   display: flex;
@@ -429,7 +434,7 @@ async function loadOverview() {
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.todo-label { font-size: 13px; font-weight: 600; color: #374151; }
+.todo-label { font-size: 13px; font-weight: 600; color: #4A4A4A; }
 .todo-count-num  { font-size: 12px; margin-top: 2px; font-weight: 600; }
-.todo-count-none { font-size: 12px; margin-top: 2px; color: #9ca3af; }
+.todo-count-none { font-size: 12px; margin-top: 2px; color: #D1D5DB; }
 </style>

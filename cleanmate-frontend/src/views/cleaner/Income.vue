@@ -20,20 +20,20 @@
       <!-- 汇总卡片 -->
       <el-row :gutter="16" style="margin-bottom:24px">
         <el-col :span="8">
-          <div class="stat-box" style="background:#f0f0ff">
-            <div class="stat-num" style="color:#5b21b6">{{ summary.orderCount }}</div>
+          <div class="stat-box" style="background:#EDF4ED">
+            <div class="stat-num" style="color:#3A3734">{{ summary.orderCount }}</div>
             <div class="stat-lbl">完成订单</div>
           </div>
         </el-col>
         <el-col :span="8">
-          <div class="stat-box" style="background:#f0fff4">
-            <div class="stat-num" style="color:#059669">¥{{ summary.totalIncome }}</div>
+          <div class="stat-box" style="background:#F8F5EF">
+            <div class="stat-num" style="color:#3A3734">¥{{ summary.totalIncome }}</div>
             <div class="stat-lbl">我的收入</div>
           </div>
         </el-col>
         <el-col :span="8">
-          <div class="stat-box" style="background:#fff7e6">
-            <div class="stat-num" style="color:#f59e0b">¥{{ summary.totalCommission }}</div>
+          <div class="stat-box" style="background:#EEF2F5">
+            <div class="stat-num" style="color:#8A857E">¥{{ summary.totalCommission }}</div>
             <div class="stat-lbl">平台佣金（{{ commissionRateText }}）</div>
           </div>
         </el-col>
@@ -54,12 +54,12 @@
         </el-table-column>
         <el-table-column label="平台佣金" width="110" align="right">
           <template #default="{ row }">
-            <span style="color:#f59e0b">¥{{ row.commissionFee ?? '-' }}</span>
+            <span style="color:#8A857E">¥{{ row.commissionFee ?? '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="我的收入" width="110" align="right">
           <template #default="{ row }">
-            <span style="color:#059669; font-weight:700">¥{{ row.cleanerIncome ?? '-' }}</span>
+            <span style="color:#3A3734; font-weight:700">¥{{ row.cleanerIncome ?? '-' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="结算状态" width="100" align="center">
@@ -75,7 +75,7 @@
       <div v-if="items.length > 0" class="income-footer">
         <span>共 {{ summary.orderCount }} 笔订单</span>
         <span>订单总额：<b>¥{{ totalActualFee }}</b></span>
-        <span>我的收入合计：<b style="color:#059669">¥{{ summary.totalIncome }}</b></span>
+        <span>我的收入合计：<b style="color:#3A3734">¥{{ summary.totalIncome }}</b></span>
       </div>
     </el-card>
   </div>
@@ -128,9 +128,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.stat-box { border-radius: 8px; padding: 16px; text-align: center; }
+.stat-box { border-radius: 10px; padding: 18px 16px; text-align: center; }
 .stat-num { font-size: 26px; font-weight: 700; }
-.stat-lbl { font-size: 12px; color: #888; margin-top: 4px; }
+.stat-lbl { font-size: 12px; color: #8A857E; margin-top: 5px; }
 
 .income-footer {
   display: flex;
@@ -138,8 +138,8 @@ onMounted(async () => {
   gap: 24px;
   margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #EDE8DF;
   font-size: 14px;
-  color: #606266;
+  color: #5A5450;
 }
 </style>

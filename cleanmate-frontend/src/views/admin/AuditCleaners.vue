@@ -30,7 +30,7 @@
         <span style="float:right;font-size:13px;color:#909399">共 {{ total }} 条</span>
       </template>
 
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table :data="list" v-loading="loading">
         <el-table-column label="真实姓名" width="100">
           <template #default="{ row }">
             <el-link type="primary" @click="openDetail(row)">{{ row.realName || '-' }}</el-link>
@@ -55,8 +55,13 @@
               size="small" style="margin:2px">{{ tag }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="评分" width="70">
-          <template #default="{ row }">{{ row.avgScore ? Number(row.avgScore).toFixed(1) : '-' }}</template>
+        <el-table-column label="评分" width="80">
+          <template #default="{ row }">
+            <span v-if="row.avgScore" :class="scoreClass(Number(row.avgScore))">
+              {{ Number(row.avgScore).toFixed(1) }} ★
+            </span>
+            <span v-else style="color:#D1D5DB">-</span>
+          </template>
         </el-table-column>
         <el-table-column label="接单数" prop="orderCount" width="70" />
         <el-table-column label="审核状态" width="90">
@@ -203,6 +208,7 @@ const companyFilterName = ref('')
 
 function auditTagType(s) { return { 1:'success', 2:'warning', 3:'danger' }[s] ?? 'info' }
 function auditLabel(s)   { return { 1:'已通过', 2:'待审核', 3:'已拒绝' }[s] ?? '-' }
+function scoreClass(s)   { return s >= 4.8 ? 'score-high' : s >= 4.5 ? 'score-mid' : 'score-low' }
 function fmt(t) { return t ? t.replace('T', ' ').slice(0, 16) : '-' }
 
 async function load() {

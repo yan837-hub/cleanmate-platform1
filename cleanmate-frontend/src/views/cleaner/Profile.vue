@@ -9,7 +9,7 @@
         </div>
       </template>
       <div class="user-info-row">
-        <el-avatar :size="56" style="background:#059669;font-size:22px;flex-shrink:0">
+        <el-avatar :size="56" style="background:#C8D4C4;color:#4A6A44;font-size:22px;flex-shrink:0">
           {{ userInfo.nickname?.charAt(0) }}
         </el-avatar>
         <div class="user-meta">

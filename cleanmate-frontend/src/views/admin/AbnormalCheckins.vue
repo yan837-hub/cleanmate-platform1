@@ -67,7 +67,7 @@
           </div>
         </template>
 
-        <el-table :data="pagedNotifications" v-loading="notifLoading" stripe style="width:100%">
+        <el-table :data="pagedNotifications" v-loading="notifLoading" style="width:100%">
           <el-table-column label="ID" prop="id" width="80" />
           <el-table-column label="订单ID" prop="refId" width="100" />
           <el-table-column label="标题" prop="title" width="220" />

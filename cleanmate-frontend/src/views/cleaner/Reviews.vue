@@ -139,9 +139,9 @@ onMounted(load)
 <style scoped>
 .review-item { padding: 4px 0; }
 .review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.review-date { font-size: 13px; color: #909399; }
+.review-date { font-size: 13px; color: #B8B0A8; }
 .scores { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 8px; }
-.score-item { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #606266; }
-.review-content { font-size: 14px; color: #303133; background: #f5f7fa; border-radius: 6px; padding: 8px 12px; }
-.reply-content { font-size: 13px; color: #606266; background: #f0f9ff; border-radius: 6px; padding: 8px 12px; margin-top: 6px; border-left: 3px solid #0ea5e9; }
+.score-item { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #5A5450; }
+.review-content { font-size: 14px; color: #3A3734; background: #F5F2EE; border-radius: 8px; padding: 10px 14px; }
+.reply-content { font-size: 13px; color: #5A5450; background: #EDF4ED; border-radius: 8px; padding: 10px 14px; margin-top: 6px; border-left: 3px solid #8FA888; }
 </style>

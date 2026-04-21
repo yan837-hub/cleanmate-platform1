@@ -49,7 +49,7 @@
         <span style="float:right;font-size:13px;color:#909399">共 {{ total }} 条</span>
       </template>
 
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table :data="list" v-loading="loading">
         <el-table-column label="ID" prop="id" width="70" />
         <el-table-column label="订单ID" prop="orderId" width="90" />
         <el-table-column label="顾客" prop="customerNickname" width="90" show-overflow-tooltip />
