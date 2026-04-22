@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Get-Process -Name mysqld -ErrorAction SilentlyContinue | Select-Object Name, Id, CPU; Get-Process -Name redis-server -ErrorAction SilentlyContinue | Select-Object Name, Id, CPU\")",
+      "Bash(powershell -Command \"Get-Process -Name java -ErrorAction SilentlyContinue | Select-Object Name, Id\")",
+      "Bash(curl -s http://localhost:8080/api/auth/login -X POST -H \"Content-Type: application/json\" -d '{\"phone\":\"13800000001\",\"password\":\"123456\",\"role\":1}')",
+      "Bash(powershell -Command \"Invoke-WebRequest -Uri 'http://localhost:8080/api/auth/login' -Method POST -ContentType 'application/json' -Body '{\\\\\"phone\\\\\":\\\\\"13800000001\\\\\",\\\\\"password\\\\\":\\\\\"123456\\\\\",\\\\\"role\\\\\":1}' -ErrorAction SilentlyContinue | Select-Object StatusCode, Content\")"
+    ]
+  }
+}
