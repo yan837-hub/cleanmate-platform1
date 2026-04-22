@@ -83,7 +83,7 @@ onMounted(load)
 }
 .notif-item:last-child { border-bottom: none; }
 .notif-item:hover { background: #F5F2EE; }
-.notif-item.unread { background: #E8F0EA; }
+.notif-item.unread { background: #EEF7F0; border-left: 3px solid #2D4A33; padding-left: 13px; }
 .notif-item.unread:hover { background: #D8E6DB; }
 
 .notif-dot {
@@ -92,7 +92,8 @@ onMounted(load)
 }
 
 .notif-body { flex: 1; min-width: 0; }
-.notif-title { font-size: 14px; font-weight: 600; color: #3A3734; margin-bottom: 4px; }
+.notif-title { font-size: 14px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+.notif-item.unread .notif-title { color: #2D4A33; }
 .notif-content { font-size: 13px; color: #5A5450; margin-bottom: 6px; line-height: 1.5; }
 .notif-time { font-size: 12px; color: #B8B0A8; }
 </style>

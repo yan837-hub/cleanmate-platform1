@@ -282,13 +282,13 @@
               <el-rate :model-value="existingReview.scorePunctual" disabled />
             </div>
             <div v-if="existingReview.content" class="review-content">{{ existingReview.content }}</div>
-            <div v-if="existingReview.imgs" style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+            <div v-if="existingReview.imgs?.split(',').some(Boolean)" style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
               <el-image
-                v-for="url in existingReview.imgs.split(',')"
+                v-for="url in existingReview.imgs.split(',').filter(Boolean)"
                 :key="url"
                 :src="url"
                 style="width:80px;height:80px;border-radius:4px;object-fit:cover"
-                :preview-src-list="existingReview.imgs.split(',')"
+                :preview-src-list="existingReview.imgs.split(',').filter(Boolean)"
                 fit="cover"
               />
             </div>

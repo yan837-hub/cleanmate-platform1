@@ -7,7 +7,7 @@
           <span class="logo-letter">C</span>
         </div>
         <h1 class="brand-name">CleanMate</h1>
-        <p class="brand-sub">注册新账号</p>
+        <p class="brand-sub">您的居家保洁专家</p>
       </div>
 
       <!-- 角色 Tab -->
@@ -18,15 +18,20 @@
 
       <el-form ref="formRef" :model="form" :rules="rules">
         <el-form-item prop="phone">
-          <el-input v-model="form.phone" placeholder="请输入手机号" size="large" />
+          <el-input v-model="form.phone" placeholder="请输入手机号" size="large">
+            <template #prefix>
+              <span class="phone-prefix">+86</span>
+            </template>
+          </el-input>
         </el-form-item>
-        <!-- 顾客显示昵称，保洁员显示真实姓名 -->
+
         <el-form-item v-if="form.role === 1" prop="nickname">
           <el-input v-model="form.nickname" placeholder="请输入昵称（可选）" size="large" />
         </el-form-item>
         <el-form-item v-if="form.role === 2" prop="realName">
           <el-input v-model="form.realName" placeholder="请输入真实姓名（必填，用于实名审核）" size="large" />
         </el-form-item>
+
         <el-form-item prop="password">
           <el-input v-model="form.password" type="password" placeholder="密码（至少6位）" size="large" show-password />
         </el-form-item>
@@ -36,14 +41,14 @@
 
         <!-- 保洁员专属：个人/公司选择 -->
         <template v-if="form.role === 2">
-          <el-form-item label="保洁员类型" prop="cleanerType">
+          <el-form-item prop="cleanerType" class="cleaner-type-item">
             <el-radio-group v-model="form.cleanerType" @change="onCleanerTypeChange">
               <el-radio :value="1">个人保洁员</el-radio>
               <el-radio :value="2">公司保洁员</el-radio>
             </el-radio-group>
           </el-form-item>
 
-          <el-form-item v-if="form.cleanerType === 2" label="所属公司" prop="companyId">
+          <el-form-item v-if="form.cleanerType === 2" prop="companyId">
             <el-select
               v-model="form.companyId"
               placeholder="请选择所属公司"
@@ -52,18 +57,14 @@
               style="width:100%"
               :loading="companyLoading"
             >
-              <el-option
-                v-for="c in companyList"
-                :key="c.id"
-                :label="c.name"
-                :value="c.id"
-              />
+              <el-option v-for="c in companyList" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
           </el-form-item>
 
-          <el-alert type="warning" :closable="false" show-icon style="margin-bottom:16px;border-radius:8px">
+          <div class="audit-notice">
+            <i class="ri-information-line"></i>
             保洁员注册后需等待管理员审核资质，审核通过后方可接单。
-          </el-alert>
+          </div>
         </template>
 
         <el-button :loading="loading" @click="handleRegister" class="login-btn">注册</el-button>
@@ -71,14 +72,16 @@
 
       <div class="footer-links">
         <span>已有账号？</span>
-        <el-link type="primary" @click="$router.push('/login')">立即登录</el-link>
+        <span class="link" @click="$router.push('/login')">立即登录</span>
       </div>
+
+      <div class="page-footer">CleanMate © 2024 高效保洁 治愈生活</div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { register } from '@/api/auth'
@@ -94,10 +97,10 @@ const form = reactive({
   role: 1,
   phone: '',
   nickname: '',
-  realName: '',     // 保洁员真实姓名
+  realName: '',
   password: '',
   confirmPassword: '',
-  cleanerType: 1,   // 1=个人 2=公司
+  cleanerType: 1,
   companyId: null,
 })
 
@@ -111,9 +114,7 @@ function switchRole(role) {
 
 function onCleanerTypeChange(val) {
   form.companyId = null
-  if (val === 2 && companyList.value.length === 0) {
-    loadCompanies()
-  }
+  if (val === 2 && companyList.value.length === 0) loadCompanies()
 }
 
 async function loadCompanies() {
@@ -134,11 +135,8 @@ const validateConfirmPwd = (rule, value, callback) => {
 }
 
 const validateCompanyId = (rule, value, callback) => {
-  if (form.role === 2 && form.cleanerType === 2 && !value) {
-    callback(new Error('请选择所属公司'))
-  } else {
-    callback()
-  }
+  if (form.role === 2 && form.cleanerType === 2 && !value) callback(new Error('请选择所属公司'))
+  else callback()
 }
 
 const rules = {
@@ -166,18 +164,12 @@ async function handleRegister() {
   if (!valid) return
   loading.value = true
   try {
-    const payload = {
-      phone: form.phone,
-      password: form.password,
-      role: form.role,
-    }
+    const payload = { phone: form.phone, password: form.password, role: form.role }
     if (form.role === 1) {
       payload.nickname = form.nickname || form.phone
     } else {
       payload.realName = form.realName
-      if (form.cleanerType === 2 && form.companyId) {
-        payload.companyId = form.companyId
-      }
+      if (form.cleanerType === 2 && form.companyId) payload.companyId = form.companyId
     }
     await register(payload)
     if (form.role === 2) {
@@ -190,8 +182,6 @@ async function handleRegister() {
       ElMessage.success('注册成功，请登录')
     }
     router.push('/login')
-  } catch {
-    // 错误已由请求拦截器统一弹出
   } finally {
     loading.value = false
   }
@@ -199,72 +189,170 @@ async function handleRegister() {
 </script>
 
 <style scoped>
+/* 页面背景 — 奶油薄荷渐变 */
 .login-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    radial-gradient(ellipse 65% 55% at 20% 65%, rgba(14,165,233,.09) 0%, transparent 100%),
-    radial-gradient(ellipse 65% 55% at 80% 35%, rgba(16,185,129,.09) 0%, transparent 100%),
-    #f9fafb;
+  background: linear-gradient(145deg, #F0F5F3 0%, #E8F0EC 100%);
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
+/* 卡片 */
 .login-card {
   width: 420px;
-  background: #fff;
+  background: #FFFFFF;
   border-radius: 20px;
-  padding: 44px 40px 36px;
-  box-shadow: 0 0 0 1px rgba(0,0,0,.04), 0 4px 6px -1px rgba(0,0,0,.06), 0 16px 48px -8px rgba(0,0,0,.12);
+  padding: 44px 40px 32px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06), 0 16px 48px rgba(0,0,0,.08);
 }
 
-.logo { text-align: center; margin-bottom: 32px; }
+/* Logo */
+.logo { text-align: center; margin-bottom: 28px; }
+
 .logo-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 64px; height: 64px;
-  background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%);
+  background: #C8D4C4;
   border-radius: 18px;
   margin-bottom: 14px;
-  box-shadow: 0 4px 16px rgba(14,165,233,.28);
 }
-.logo-letter { font-size: 32px; font-weight: 800; color: #fff; line-height: 1; font-family: Georgia, serif; }
-.brand-name { font-size: 26px; font-weight: 800; margin: 0 0 4px; color: #18181b; letter-spacing: -0.5px; }
-.brand-sub { color: #a1a1aa; font-size: 13px; margin: 0; }
 
+.logo-letter {
+  font-size: 32px; font-weight: 800;
+  color: #FFFFFF; line-height: 1;
+  font-family: Georgia, serif;
+}
+
+.brand-name {
+  font-size: 24px; font-weight: 700;
+  margin: 0 0 4px; color: #4A4A4A;
+  letter-spacing: 0.5px;
+}
+
+.brand-sub { color: #8A8A8A; font-size: 13px; margin: 0; }
+
+/* 角色 Tab — 下划线风格 */
 .role-tabs {
   display: flex;
-  background: #f4f4f5;
-  border-radius: 10px;
-  padding: 4px;
+  justify-content: center;
+  gap: 32px;
   margin-bottom: 24px;
-  gap: 2px;
-}
-.role-tab {
-  flex: 1; text-align: center; padding: 9px 0;
-  border-radius: 8px; font-size: 14px; color: #71717a;
-  cursor: pointer; transition: all .2s;
-}
-.role-tab.active {
-  background: #fff; color: #18181b; font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+  border-bottom: 1px solid #E8EEEB;
+  padding-bottom: 0;
 }
 
+.role-tab {
+  padding: 8px 4px 10px;
+  font-size: 14px; color: #8A8A8A;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all .2s;
+}
+
+.role-tab.active {
+  color: #4A4A4A; font-weight: 600;
+  border-bottom-color: #B8C5D0;
+}
+
+/* 输入框覆盖 */
+:deep(.el-input__wrapper) {
+  background: #FAFAF8;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px #E8EEEB inset;
+}
+
+:deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #C8D4C4 inset;
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1.5px #C8D4C4 inset !important;
+}
+
+:deep(.el-input__inner::placeholder) {
+  color: #B8B8B8;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  background: #FAFAF8;
+}
+
+/* +86 前缀 */
+.phone-prefix {
+  color: #8A8A8A; font-size: 13px;
+  padding-right: 8px;
+  border-right: 1px solid #E0E8E4;
+  margin-right: 4px;
+}
+
+/* 保洁员类型选择 */
+.cleaner-type-item :deep(.el-form-item__content) {
+  padding: 4px 0;
+}
+
+:deep(.el-radio__input.is-checked .el-radio__inner) {
+  background: #C8D4C4;
+  border-color: #C8D4C4;
+}
+
+:deep(.el-radio__input.is-checked + .el-radio__label) {
+  color: #4A4A4A;
+}
+
+/* 审核提示 */
+.audit-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  background: #F5F8F6;
+  border: 1px solid #E0EAE4;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px; color: #8A8A8A;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.audit-notice i { color: #B8C5D0; font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+/* 注册按钮 */
 .login-btn {
   width: 100%;
-  background: #18181b; border: none; border-radius: 10px;
-  height: 46px; font-size: 15px; font-weight: 600;
-  color: #fff; letter-spacing: 2px; transition: all .2s;
-}
-.login-btn:hover {
-  background: #27272a;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(0,0,0,.18);
+  background: #4A4A4A; border: none;
+  border-radius: 10px; height: 46px;
+  font-size: 15px; font-weight: 600;
+  color: #FFFFFF; letter-spacing: 2px;
+  transition: all .2s; margin-top: 4px;
 }
 
+.login-btn:hover {
+  background: #3A3A3A;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(74,74,74,.2);
+}
+
+/* 底部链接 */
 .footer-links {
   text-align: center; margin-top: 18px;
-  color: #a1a1aa; font-size: 13px;
+  font-size: 13px; color: #8A8A8A;
+}
+
+.link {
+  color: #C8D4C4; cursor: pointer;
+  font-weight: 500; margin-left: 4px;
+  transition: color .15s;
+}
+
+.link:hover { color: #A8B8A4; }
+
+/* 版权行 */
+.page-footer {
+  text-align: center; margin-top: 24px;
+  font-size: 11px; color: #B8B8B8;
 }
 </style>

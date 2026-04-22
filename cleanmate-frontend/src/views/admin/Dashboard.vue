@@ -378,12 +378,12 @@ async function loadOverview() {
   flex-shrink: 0;
 }
 .stat-info { flex: 1; min-width: 0; }
-.stat-value { font-size: 24px; font-weight: 700; line-height: 1.2; font-family: 'Inter', sans-serif; }
+.stat-value { font-size: 24px; font-weight: 700; line-height: 1.2; }
 .stat-label { font-size: 11px; color: #9CA3AF; margin-top: 3px; letter-spacing: 0.2px; }
 .card-badge { position: absolute; top: 10px; right: 12px; }
 
 /* 图表标题栏 */
-.card-title { font-size: 14px; font-weight: 600; color: #4A4A4A; font-family: 'Inter', sans-serif; }
+.card-title { font-size: 14px; font-weight: 600; color: #4A4A4A; }
 .chart-header {
   display: flex;
   justify-content: space-between;

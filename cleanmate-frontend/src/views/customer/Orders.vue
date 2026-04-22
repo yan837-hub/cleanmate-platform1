@@ -185,7 +185,11 @@ onMounted(loadOrders)
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
-.page-title { font-size: 20px; font-weight: 700; color: #3A3734; margin: 0; }
+.page-title {
+  font-size: 20px; font-weight: 700; color: #2D4A33; margin: 0;
+  padding-left: 12px;
+  border-left: 4px solid #2D4A33;
+}
 
 .orders-card { border-radius: 12px; }
 .order-tabs { margin-bottom: 4px; }
@@ -217,7 +221,7 @@ onMounted(loadOrders)
   gap: 10px;
   margin-bottom: 6px;
 }
-.order-service { font-size: 16px; font-weight: 600; color: #3A3734; }
+.order-service { font-size: 16px; font-weight: 600; color: #2D4A33; }
 .order-no { font-size: 12px; color: #B8B0A8; margin-bottom: 8px; }
 .order-meta {
   display: flex;
@@ -237,7 +241,7 @@ onMounted(loadOrders)
   gap: 10px;
   flex-shrink: 0;
 }
-.order-fee { font-size: 20px; font-weight: 700; color: #3A3734; }
+.order-fee { font-size: 20px; font-weight: 700; color: #D97706; }
 .fee-tip { font-size: 11px; font-weight: 400; color: #B8B0A8; margin-left: 2px; }
 .order-actions { display: flex; gap: 8px; }
 

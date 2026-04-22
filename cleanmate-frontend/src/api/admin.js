@@ -144,6 +144,14 @@ export function toggleCustomerStatus(userId, status) {
   return request.put(`/admin/customers/${userId}/status`, null, { params: { status } })
 }
 
+// ---- 通用文件上传 ----
+
+export function uploadImage(file) {
+  const fd = new FormData()
+  fd.append('file', file)
+  return request.post('/common/upload', fd)
+}
+
 // ---- 服务类型管理 ----
 
 // 服务类型分页列表

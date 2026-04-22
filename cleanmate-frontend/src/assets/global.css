@@ -40,6 +40,7 @@
 
 .el-message-box__header {
   background: #FAFAF5 !important;
+  border-top: 3px solid #7BA888 !important;
   border-bottom: 1px solid #F0F0EB !important;
   padding: 16px 20px 14px !important;
 }
@@ -106,6 +107,18 @@
   border-color: #56896A !important;
 }
 
+.el-message-box__btns .el-button--danger {
+  background: #E8A5A5 !important;
+  border-color: #E8A5A5 !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+  transition: all 0.2s;
+}
+.el-message-box__btns .el-button--danger:hover {
+  background: #D49090 !important;
+  border-color: #D49090 !important;
+}
+
 /* ================================================
    el-dialog 莫兰迪浅色主题
    ================================================ */
@@ -126,6 +139,7 @@
 
 .el-dialog__header {
   background: #FAFAF5 !important;
+  border-top: 3px solid #7BA888 !important;
   border-bottom: 1px solid #F0F0EB !important;
   padding: 16px 20px 14px !important;
   margin: 0 !important;
@@ -662,3 +676,55 @@
 .admin-container .score-high { color: #4DAA6B !important; font-weight: 600; }
 .admin-container .score-mid  { color: #C8960A !important; font-weight: 600; }
 .admin-container .score-low  { color: #D4734A !important; font-weight: 600; }
+
+/* ================================================
+   ElNotification 绿色主题
+   ================================================ */
+
+.el-notification {
+  background: #FFFFFF !important;
+  border: 1px solid #E8EFE8 !important;
+  border-left: 3px solid #7BA888 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 28px rgba(74, 74, 74, 0.13) !important;
+  padding: 14px 18px 14px 16px !important;
+}
+
+.el-notification__title {
+  color: #3A5A44 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+}
+
+.el-notification__content {
+  color: #7A8A7E !important;
+  font-size: 13px !important;
+  margin-top: 4px !important;
+  line-height: 1.55 !important;
+}
+
+/* info / success 图标统一绿色 */
+.el-notification .el-notification__icon {
+  color: #7BA888 !important;
+}
+.el-notification.info .el-notification__icon,
+.el-notification.success .el-notification__icon {
+  color: #7BA888 !important;
+}
+
+/* warning / error 保留语义色，但降饱和度与整体一致 */
+.el-notification.warning .el-notification__icon {
+  color: #C8960A !important;
+}
+.el-notification.error .el-notification__icon {
+  color: #D47A7A !important;
+}
+
+.el-notification__closeBtn {
+  color: #C8D4C8 !important;
+  transition: color 0.2s;
+}
+.el-notification__closeBtn:hover {
+  color: #9CA3AF !important;
+}

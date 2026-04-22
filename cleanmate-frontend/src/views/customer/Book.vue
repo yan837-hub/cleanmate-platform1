@@ -26,7 +26,10 @@
               :class="{ selected: form.serviceTypeId === s.id }"
               @click="selectService(s)"
             >
-              <div class="svc-tag" :style="{ background: tagColor(s.id) }">{{ s.name.slice(0, 1) }}</div>
+              <div class="svc-tag" :style="s.coverImg ? { padding: 0, overflow: 'hidden' } : { background: tagColor(s.id) }">
+                <img v-if="s.coverImg" :src="s.coverImg" style="width:100%;height:100%;object-fit:cover;display:block;" />
+                <span v-else>{{ s.name.slice(0, 1) }}</span>
+              </div>
               <div class="svc-info">
                 <div class="svc-name">{{ s.name }}</div>
                 <div class="svc-desc">{{ s.description }}</div>
@@ -391,7 +394,7 @@ onMounted(async () => {
 
 <style scoped>
 .book-page { width: 100%; }
-.outer-title { font-size: 20px; font-weight: 700; color: #3A3734; margin: 0 0 20px; }
+.outer-title { font-size: 20px; font-weight: 700; color: #2D4A33; margin: 0 0 20px; padding-left: 12px; border-left: 4px solid #2D4A33; }
 .page-title { font-size: 15px; font-weight: 600; color: #3A3734; }
 
 .svc-card {
@@ -417,7 +420,7 @@ onMounted(async () => {
 .svc-info { flex: 1; min-width: 0; }
 .svc-name { font-size: 14px; font-weight: 600; color: #3A3734; margin-bottom: 2px; }
 .svc-desc { font-size: 12px; color: #8A857E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
-.svc-price { font-size: 13px; color: #3A3734; font-weight: 600; }
+.svc-price { font-size: 13px; color: #2D4A33; font-weight: 600; }
 .check-icon { position: absolute; top: 8px; right: 8px; font-size: 20px; }
 
 .address-list { display: flex; flex-direction: column; gap: 8px; }
@@ -448,7 +451,7 @@ onMounted(async () => {
   border-radius: var(--cm-radius-md);
 }
 .fee-summary-label { font-size: 15px; font-weight: 600; color: #3A3734; }
-.fee-summary-amount { font-size: 28px; font-weight: 700; color: #3A3734; letter-spacing: -0.5px; }
+.fee-summary-amount { font-size: 28px; font-weight: 700; color: #2D4A33; letter-spacing: -0.5px; }
 
 .step-actions { margin-top: 24px; display: flex; justify-content: center; gap: 16px; }
 </style>

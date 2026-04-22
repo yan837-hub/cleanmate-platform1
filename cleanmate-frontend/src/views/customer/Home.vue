@@ -80,19 +80,20 @@
         :key="svc.name"
         @click="$router.push('/customer/book')"
       >
-        <div class="svc-img" :style="{ background: svc.bg }">
-          <span class="svc-emoji">{{ svc.icon }}</span>
-          <span v-if="svc.hot" class="hot-badge">HOT</span>
+        <div class="svc-img" :style="imgFailed[svc.id] || !svc.coverImg ? { background: svc.bg } : {}">
+          <img
+            v-if="svc.coverImg && !imgFailed[svc.id]"
+            :src="svc.coverImg"
+            class="svc-cover-img"
+            @error="imgFailed[svc.id] = true"
+          />
+          <span v-else class="svc-emoji">{{ svc.icon }}</span>
         </div>
         <div class="svc-body">
           <div class="svc-top-row">
             <span class="svc-name">{{ svc.name }}</span>
-            <span class="svc-rating">★ {{ svc.rating }}</span>
           </div>
-          <div class="svc-tags">
-            <span class="svc-tag" v-for="tag in svc.tags" :key="tag">{{ tag }}</span>
-          </div>
-          <div class="svc-footer">
+<div class="svc-footer">
             <div>
               <span class="svc-price">{{ svc.price }}</span>
               <span class="svc-unit">起</span>
@@ -119,6 +120,7 @@ const userStore = useUserStore()
 const rawStats = ref({ total: 0, pending: 0, done: 0 })
 const activeOrder = ref(null)
 const serviceTypes = ref([])
+const imgFailed = ref({})
 
 const services = computed(() => {
   return serviceTypes.value.map((st, index) => {
@@ -136,19 +138,17 @@ const services = computed(() => {
       name: st.name,
       desc: st.description || config.desc || '',
       price: priceText,
-      tags: config.tags || [],
-      rating: config.rating || 4.8,
       icon: config.icon || '🏠',
       bg: config.bg || 'linear-gradient(135deg, #E8F0EA 0%, #D8E6DB 100%)',
-      hot: config.hot || false,
+      coverImg: st.coverImg || '',
     }
   })
 })
 
 const statCards = computed(() => [
-  { label: '累计预约', value: rawStats.value.total,   icon: 'Calendar', color: '#3A3734', iconBg: 'rgba(45,74,51,.12)', iconColor: '#2D4A33', route: '/customer/orders' },
-  { label: '待服务',   value: rawStats.value.pending, icon: 'Clock',    color: '#3A3734', iconBg: 'rgba(196,168,130,.12)', iconColor: '#C4A882', route: '/customer/orders' },
-  { label: '已完成',   value: rawStats.value.done,    icon: 'Check',    color: '#3A3734', iconBg: 'rgba(168,184,196,.12)', iconColor: '#A8B8C4', route: '/customer/orders' },
+  { label: '累计预约', value: rawStats.value.total,   icon: 'Calendar', color: '#2D4A33', iconBg: 'rgba(45,74,51,.12)', iconColor: '#2D4A33', route: '/customer/orders' },
+  { label: '待服务',   value: rawStats.value.pending, icon: 'Clock',    color: '#D97706', iconBg: 'rgba(217,119,6,.10)', iconColor: '#D97706', route: '/customer/orders' },
+  { label: '已完成',   value: rawStats.value.done,    icon: 'Check',    color: '#2D4A33', iconBg: 'rgba(45,74,51,.12)', iconColor: '#2D4A33', route: '/customer/orders' },
 ])
 
 async function loadStats() {
@@ -371,19 +371,8 @@ onUnmounted(() => clearInterval(timer))
   align-items: center;
   justify-content: center;
 }
+.svc-cover-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .svc-emoji { font-size: 48px; line-height: 1; }
-.hot-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: #C4A882;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 20px;
-  letter-spacing: 0.5px;
-}
 .svc-body { padding: 14px 16px 16px; }
 .svc-top-row {
   display: flex;
@@ -392,28 +381,12 @@ onUnmounted(() => clearInterval(timer))
   margin-bottom: 8px;
 }
 .svc-name { font-size: 15px; font-weight: 600; color: #3A3734; }
-.svc-rating { font-size: 12px; color: #C4A882; font-weight: 600; }
-.svc-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 12px;
-  min-height: 22px;
-}
-.svc-tag {
-  font-size: 11px;
-  color: #2D4A33;
-  background: #E8F0EA;
-  border-radius: 20px;
-  padding: 2px 8px;
-  line-height: 1.5;
-}
 .svc-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.svc-price { font-size: 18px; font-weight: 700; color: #3A3734; }
+.svc-price { font-size: 18px; font-weight: 700; color: #2D4A33; }
 .svc-unit { font-size: 12px; color: #B8B0A8; font-weight: 400; margin-left: 2px; }
 .svc-book-btn {
   width: 32px; height: 32px;

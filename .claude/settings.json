@@ -9,7 +9,17 @@
       "Bash(find /f/cleanmate-platform/cleanmate-frontend/src/views -name \"*.vue\" -exec grep -l \"console.log\\\\|debugger\" {} \\\\;)",
       "Bash(git -C f:/cleanmate-platform rm -r --cached cleanmate-backend/target/)",
       "Bash(python3 -c ':*)",
-      "Read(//c/Users/xee/Desktop/**)"
+      "Read(//c/Users/xee/Desktop/**)",
+      "Bash(powershell -Command \"Get-Process -Name redis-server -ErrorAction SilentlyContinue | Select-Object Name, Id\")",
+      "Bash(powershell -Command \"redis-cli ping\")",
+      "Read(//c/Program Files/**)",
+      "Read(//c//**)",
+      "Bash(find /c /d -name \"redis-server.exe\")",
+      "Bash(\"F:/dev_soft/redis-6.2.1/bin/redis-cli.exe\" ping *)",
+      "Bash(grep -E \"\\\\.java$\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\xee\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
     ]
   }
 }

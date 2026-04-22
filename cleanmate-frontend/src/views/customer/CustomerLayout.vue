@@ -4,7 +4,7 @@
     <el-header class="header">
       <div class="header-inner">
         <span class="brand">CleanMate</span>
-        <el-menu mode="horizontal" :router="true" :default-active="$route.path" class="nav-menu" active-text-color="#0ea5e9">
+        <el-menu mode="horizontal" :router="true" :default-active="$route.path" class="nav-menu">
           <el-menu-item index="/customer/home">首页</el-menu-item>
           <el-menu-item index="/customer/book">立即预约</el-menu-item>
           <el-menu-item index="/customer/orders">我的订单</el-menu-item>
@@ -23,9 +23,7 @@
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="notifications">消息中心</el-dropdown-item>
-                <el-dropdown-item command="profile">个人信息</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -45,19 +43,41 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessageBox, ElMessage } from 'element-plus'
+import { ElMessageBox, ElMessage, ElNotification } from 'element-plus'
 import { Bell } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
-import { getUnreadCount } from '@/api/notification'
+import { getUnreadCount, getNotifications } from '@/api/notification'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 const unreadCount = ref(0)
+let lastKnownCount = null
 
 async function refreshUnread() {
   try {
-    unreadCount.value = await getUnreadCount()
+    const count = await getUnreadCount()
+    if (lastKnownCount === null) {
+      lastKnownCount = count
+    } else if (count > lastKnownCount) {
+      try {
+        const msgs = await getNotifications()
+        const latest = msgs.find(m => m.isRead === 0)
+        ElNotification({
+          title: latest?.title ?? '您有新消息',
+          message: latest?.content ?? '点击查看消息中心',
+          type: 'info',
+          duration: 6000,
+          onClick: () => router.push('/customer/notifications'),
+        })
+      } catch {
+        ElNotification({ title: '您有新消息', message: '点击查看消息中心', type: 'info', duration: 6000 })
+      }
+      lastKnownCount = count
+    } else {
+      lastKnownCount = count
+    }
+    unreadCount.value = count
   } catch {}
 }
 
@@ -69,11 +89,7 @@ onMounted(() => {
 onUnmounted(() => clearInterval(unreadTimer))
 
 function handleCommand(command) {
-  if (command === 'notifications') {
-    router.push('/customer/notifications')
-  } else if (command === 'profile') {
-    router.push('/customer/profile')
-  } else if (command === 'logout') {
+  if (command === 'logout') {
     ElMessageBox.confirm('确认退出登录？', '提示', { type: 'warning' }).then(() => {
       userStore.logout()
       ElMessage.success('已退出登录')
@@ -122,7 +138,7 @@ function handleCommand(command) {
 .brand {
   font-size: 20px;
   font-weight: 700;
-  color: #3A3734;
+  color: #2D4A33;
   flex-shrink: 0;
   letter-spacing: -0.5px;
 }

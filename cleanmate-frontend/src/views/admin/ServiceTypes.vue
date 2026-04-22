@@ -99,8 +99,31 @@
         <el-form-item label="描述">
           <el-input v-model="form.description" type="textarea" :rows="2" placeholder="简短描述该服务内容" />
         </el-form-item>
-        <el-form-item label="封面图URL">
-          <el-input v-model="form.coverImg" placeholder="https://..." />
+        <el-form-item label="封面图">
+          <div class="cover-upload-wrap">
+            <el-upload
+              :show-file-list="false"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              :http-request="handleCoverUpload"
+              :disabled="coverUploading"
+            >
+              <div class="cover-uploader-box">
+                <template v-if="form.coverImg">
+                  <img :src="form.coverImg" class="cover-img-preview" />
+                  <div class="cover-change-mask">
+                    <el-icon size="18"><Camera /></el-icon>
+                    <span>更换图片</span>
+                  </div>
+                </template>
+                <template v-else>
+                  <el-icon v-if="!coverUploading" size="26" color="#c0c4cc"><Plus /></el-icon>
+                  <el-icon v-else size="26" color="#409eff" class="is-loading"><Loading /></el-icon>
+                  <span class="cover-upload-text">{{ coverUploading ? '上传中...' : '上传封面图' }}</span>
+                </template>
+              </div>
+            </el-upload>
+            <span class="cover-tip">支持 JPG/PNG/GIF/WebP，最大 10MB</span>
+          </div>
         </el-form-item>
 
         <el-form-item label="计价方式" prop="priceMode">
@@ -181,6 +204,7 @@ import {
   createServiceType,
   updateServiceType,
   updateServiceTypeStatus,
+  uploadImage,
 } from '@/api/admin'
 
 // ---- 列表 ----
@@ -265,6 +289,21 @@ function openEdit(row) {
 function onPriceModeChange() { form.priceTiers = []; form.basePrice = null }
 function addTier() { form.priceTiers.push({ areaMin: 0, areaMax: 0, unitPrice: null }) }
 function removeTier(idx) { form.priceTiers.splice(idx, 1) }
+
+// ---- 封面图上传 ----
+const coverUploading = ref(false)
+async function handleCoverUpload({ file }) {
+  coverUploading.value = true
+  try {
+    const url = await uploadImage(file)
+    form.coverImg = url
+    ElMessage.success('图片上传成功')
+  } catch {
+    ElMessage.error('图片上传失败，请重试')
+  } finally {
+    coverUploading.value = false
+  }
+}
 
 async function handleSubmit() {
   await formRef.value.validate()
@@ -434,4 +473,50 @@ function iconBg(id) { return ICON_COLORS[id % ICON_COLORS.length] }
 .tier-hint { margin-top: 4px; font-size: 12px; color: #bbb; }
 
 .pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
+
+/* 封面图上传 */
+.cover-upload-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.cover-uploader-box {
+  width: 120px;
+  height: 90px;
+  border: 1.5px dashed #dcdfe6;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  background: #fafafa;
+  transition: border-color 0.2s;
+}
+.cover-uploader-box:hover { border-color: #409eff; }
+.cover-img-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cover-change-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.cover-uploader-box:hover .cover-change-mask { opacity: 1; }
+.cover-upload-text { font-size: 12px; color: #999; margin-top: 6px; }
+.cover-tip { font-size: 12px; color: #bbb; align-self: flex-end; padding-bottom: 4px; }
 </style>

@@ -3,7 +3,7 @@
     <h2 class="page-title">个人中心</h2>
     <!-- 个人信息 -->
     <el-card style="margin-bottom:20px;border-radius:12px" v-loading="infoLoading">
-      <template #header><span style="font-weight:600">个人信息</span></template>
+      <template #header><span class="card-section-title">个人信息</span></template>
       <div class="user-info-row">
         <el-avatar :size="56" class="avatar">{{ userInfo.nickname?.charAt(0) }}</el-avatar>
         <div class="user-meta">
@@ -25,7 +25,7 @@
     <el-card style="margin-bottom:20px;border-radius:12px">
       <template #header>
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-weight:600">地址管理</span>
+          <span class="card-section-title">地址管理</span>
           <el-button type="primary" size="small" @click="showDialog = true">+ 添加地址</el-button>
         </div>
       </template>
@@ -58,7 +58,7 @@
 
     <!-- 修改密码 -->
     <el-card style="border-radius:12px">
-      <template #header><span style="font-weight:600">修改密码</span></template>
+      <template #header><span class="card-section-title">修改密码</span></template>
       <el-form :model="pwdForm" :rules="pwdRules" ref="pwdFormRef" label-width="100px" style="max-width:440px">
         <el-form-item label="当前密码" prop="oldPassword">
           <el-input v-model="pwdForm.oldPassword" type="password" show-password placeholder="请输入当前密码" />
@@ -233,7 +233,16 @@ onMounted(() => {
 <style scoped>
 .page-title { font-size: 20px; font-weight: 700; color: #3A3734; margin: 0 0 20px; }
 .user-info-row { display: flex; align-items: center; gap: 16px; }
-.avatar { background: #A3BDA9 !important; color: #2D4A33 !important; font-size: 20px; font-weight: 700; flex-shrink: 0; }
-.user-name { font-size: 18px; font-weight: 700; color: #3A3734; }
+.avatar { background: #2D4A33 !important; color: #fff !important; font-size: 20px; font-weight: 700; flex-shrink: 0; }
+.user-name { font-size: 18px; font-weight: 700; color: #2D4A33; }
 .user-phone { font-size: 14px; color: #8A857E; margin-top: 4px; }
+
+.card-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2D4A33;
+  padding-left: 10px;
+  border-left: 3px solid #2D4A33;
+  line-height: 1.2;
+}
 </style>

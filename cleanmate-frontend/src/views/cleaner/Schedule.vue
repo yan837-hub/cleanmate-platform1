@@ -1,121 +1,157 @@
 <template>
   <div class="schedule-wrap">
-    <el-row :gutter="20">
+    <!-- 页面标题 -->
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">档期管理</h2>
+        <p class="page-sub">设置您的工作时段，系统将在可接单时段内为您派单</p>
+      </div>
+    </div>
 
+    <div class="schedule-grid">
       <!-- ═══ 左侧：每周固定时段 ═══ -->
-      <el-col :span="9">
-        <el-card>
-          <template #header>
-            <span style="font-size:15px; font-weight:600">每周固定时段</span>
-          </template>
+      <div class="panel template-panel">
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <span class="panel-dot panel-dot--green"></span>
+            <span class="panel-title">每周固定时段</span>
+          </div>
+        </div>
 
-          <div v-loading="templateLoading">
-            <div
-              v-for="item in templateDays"
-              :key="item.dayOfWeek"
-              class="template-row"
-            >
+        <div class="template-list" v-loading="templateLoading">
+          <div
+            v-for="item in templateDays"
+            :key="item.dayOfWeek"
+            class="template-row"
+            :class="{ 'template-row--active': item.isWork }"
+          >
+            <div class="day-info">
               <span class="day-label">{{ DAY_NAMES[item.dayOfWeek - 1] }}</span>
-              <el-switch v-model="item.isWork" size="small" />
+              <el-switch
+                v-model="item.isWork"
+                size="small"
+                active-color="#2A6B47"
+              />
+            </div>
+            <div class="time-pickers" :class="{ 'time-pickers--disabled': !item.isWork }">
               <el-time-picker
                 v-model="item.startTimeDate"
                 placeholder="开始"
                 format="HH:mm"
                 :disabled="!item.isWork"
                 size="small"
-                style="width:100px"
+                style="width:95px"
               />
-              <span class="sep">~</span>
+              <span class="time-sep">~</span>
               <el-time-picker
                 v-model="item.endTimeDate"
                 placeholder="结束"
                 format="HH:mm"
                 :disabled="!item.isWork"
                 size="small"
-                style="width:100px"
+                style="width:95px"
               />
             </div>
-
-            <div class="template-footer">
-              <el-button @click="quickSet">一键设置工作日</el-button>
-              <el-button type="primary" @click="saveTemplate" :loading="saving">
-                保存设置
-              </el-button>
+            <div class="day-status" v-if="item.isWork">
+              <span class="status-dot-on"></span>
+              <span class="status-text-on">工作日</span>
+            </div>
+            <div class="day-status" v-else>
+              <span class="status-dot-off"></span>
+              <span class="status-text-off">休息</span>
             </div>
           </div>
-        </el-card>
-      </el-col>
+        </div>
+
+        <div class="template-footer">
+          <el-button @click="quickSet" plain size="default" style="border-radius:50px">
+            一键设置工作日
+          </el-button>
+          <el-button type="primary" @click="saveTemplate" :loading="saving" size="default" style="border-radius:50px">
+            保存设置
+          </el-button>
+        </div>
+      </div>
 
       <!-- ═══ 右侧：特殊调整日历 ═══ -->
-      <el-col :span="15">
-        <el-card>
-          <template #header>
-            <div class="cal-header-bar">
-              <span style="font-size:15px; font-weight:600">特殊调整</span>
-              <div class="month-nav">
-                <el-button :icon="ArrowLeft" circle size="small" @click="prevMonth" />
-                <span class="year-month">{{ yearMonth }}</span>
-                <el-button :icon="ArrowRight" circle size="small" @click="nextMonth" />
-              </div>
-            </div>
-          </template>
-
-          <!-- 图例 -->
-          <div class="legend">
-            <span class="legend-item"><i class="dot dot-override"></i>特殊调整</span>
-            <span class="legend-item"><i class="dot dot-lock"></i>已接单时段</span>
-            <span class="legend-tip">点击任意日期可设置调整</span>
+      <div class="panel calendar-panel">
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <span class="panel-dot panel-dot--orange"></span>
+            <span class="panel-title">特殊调整日历</span>
           </div>
+          <div class="month-nav">
+            <el-button :icon="ArrowLeft" circle size="small" @click="prevMonth" />
+            <span class="year-month">{{ yearMonth }}</span>
+            <el-button :icon="ArrowRight" circle size="small" @click="nextMonth" />
+          </div>
+        </div>
 
-          <!-- 日历 -->
-          <div class="calendar" v-loading="calLoading">
-            <div class="cal-weekdays">
-              <div v-for="d in ['日','一','二','三','四','五','六']" :key="d" class="cal-weekday">
-                {{ d }}
-              </div>
-            </div>
-            <div class="cal-body">
-              <div
-                v-for="cell in calendarCells"
-                :key="cell.key"
-                class="cal-cell"
-                :class="{
-                  'other-month': !cell.inMonth,
-                  'is-today': cell.isToday,
-                  'clickable': cell.inMonth,
-                }"
-                @click="cell.inMonth && openDialog(cell.dateStr)"
-              >
-                <div class="cell-date" :class="{ 'today-badge': cell.isToday }">
-                  {{ cell.day }}
-                </div>
-                <div class="cell-marks">
-                  <span v-if="cell.hasOverride" class="mark mark-override"
-                    :title="cell.overrideLabel">调</span>
-                  <template v-if="cell.lockSlots.length">
-                    <span
-                      v-for="(slot, i) in cell.lockSlots.slice(0, 2)"
-                      :key="i"
-                      class="mark mark-lock"
-                      :title="`已接单 ${slot.startTime}~${slot.endTime}`"
-                    >{{ slot.startTime }}~{{ slot.endTime }}</span>
-                    <span v-if="cell.lockSlots.length > 2" class="mark mark-lock">
-                      +{{ cell.lockSlots.length - 2 }}
-                    </span>
-                  </template>
-                </div>
-              </div>
+        <!-- 图例 -->
+        <div class="legend">
+          <span class="legend-item">
+            <i class="legend-dot legend-dot--override"></i>
+            特殊调整
+          </span>
+          <span class="legend-item">
+            <i class="legend-dot legend-dot--lock"></i>
+            已接单时段
+          </span>
+          <span class="legend-item">
+            <i class="legend-dot legend-dot--today"></i>
+            今日
+          </span>
+          <span class="legend-tip">点击任意日期可设置调整</span>
+        </div>
+
+        <!-- 日历 -->
+        <div class="calendar" v-loading="calLoading">
+          <div class="cal-weekdays">
+            <div v-for="d in ['日','一','二','三','四','五','六']" :key="d" class="cal-weekday">
+              {{ d }}
             </div>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+          <div class="cal-body">
+            <div
+              v-for="cell in calendarCells"
+              :key="cell.key"
+              class="cal-cell"
+              :class="{
+                'other-month': !cell.inMonth,
+                'is-today': cell.isToday,
+                'has-override': cell.hasOverride,
+                'clickable': cell.inMonth,
+              }"
+              @click="cell.inMonth && openDialog(cell.dateStr)"
+            >
+              <div class="cell-date" :class="{ 'today-badge': cell.isToday }">
+                {{ cell.day }}
+              </div>
+              <div class="cell-marks">
+                <span v-if="cell.hasOverride" class="mark mark-override" :title="cell.overrideLabel">调</span>
+                <template v-if="cell.lockSlots.length">
+                  <span
+                    v-for="(slot, i) in cell.lockSlots.slice(0, 2)"
+                    :key="i"
+                    class="mark mark-lock"
+                    :title="`已接单 ${slot.startTime}~${slot.endTime}`"
+                  >{{ slot.startTime }}~{{ slot.endTime }}</span>
+                  <span v-if="cell.lockSlots.length > 2" class="mark mark-lock">
+                    +{{ cell.lockSlots.length - 2 }}
+                  </span>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ═══ 特殊调整 Dialog ═══ -->
     <el-dialog
       v-model="dialogVisible"
-      :title="`设置 ${selectedDate}`"
-      width="400px"
+      :title="`设置 ${selectedDate} 档期`"
+      width="420px"
       @closed="resetForm"
     >
       <el-form :model="form" label-width="90px" style="padding-right:10px">
@@ -125,52 +161,27 @@
             <el-radio :value="0">自定义可接单时段</el-radio>
           </el-radio-group>
         </el-form-item>
-
         <template v-if="form.isOff === 0">
           <el-form-item label="开始时间">
-            <el-time-picker
-              v-model="form.startTimeDate"
-              format="HH:mm"
-              placeholder="14:00"
-              style="width:160px"
-            />
+            <el-time-picker v-model="form.startTimeDate" format="HH:mm" placeholder="14:00" style="width:160px" />
           </el-form-item>
           <el-form-item label="结束时间">
-            <el-time-picker
-              v-model="form.endTimeDate"
-              format="HH:mm"
-              placeholder="18:00"
-              style="width:160px"
-            />
+            <el-time-picker v-model="form.endTimeDate" format="HH:mm" placeholder="18:00" style="width:160px" />
           </el-form-item>
         </template>
-
         <el-form-item label="备注">
-          <el-input
-            v-model="form.remark"
-            placeholder="可选，如：请假 / 下午可接单"
-            maxlength="50"
-          />
+          <el-input v-model="form.remark" placeholder="可选，如：请假 / 下午可接单" maxlength="50" />
         </el-form-item>
       </el-form>
-
       <template #footer>
         <div style="display:flex; justify-content:space-between; align-items:center">
-          <el-button
-            v-if="existingOverrideId"
-            type="danger"
-            plain
-            @click="removeOverride"
-            :loading="submitting"
-          >
+          <el-button v-if="existingOverrideId" type="danger" plain @click="removeOverride" :loading="submitting">
             删除调整
           </el-button>
           <div v-else></div>
           <div>
             <el-button @click="dialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="submitOverride" :loading="submitting">
-              确定
-            </el-button>
+            <el-button type="primary" @click="submitOverride" :loading="submitting">确定</el-button>
           </div>
         </div>
       </template>
@@ -191,11 +202,8 @@ import {
   getScheduleLockedDates,
 } from '@/api/order'
 
-// ─── 常量 ───────────────────────────────────────────
 const DAY_NAMES = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 
-// ─── 时间工具函数 ─────────────────────────────────────
-/** "HH:mm" → Date（当天） */
 function strToDate(str) {
   if (!str) return null
   const [h, m] = str.split(':').map(Number)
@@ -204,7 +212,6 @@ function strToDate(str) {
   return d
 }
 
-/** Date → "HH:mm" */
 function dateToStr(date) {
   if (!date) return null
   const h = String(date.getHours()).padStart(2, '0')
@@ -212,7 +219,6 @@ function dateToStr(date) {
   return `${h}:${m}`
 }
 
-// ─── 月份导航 ──────────────────────────────────────────
 const currentYear  = ref(new Date().getFullYear())
 const currentMonth = ref(new Date().getMonth() + 1)
 
@@ -234,11 +240,9 @@ function nextMonth() {
   loadCalData()
 }
 
-// ─── 周模板 ────────────────────────────────────────────
 const templateLoading = ref(false)
 const saving = ref(false)
 
-// 每行的响应式数据（含 Date 对象供 TimePicker 使用）
 const templateDays = ref(
   Array.from({ length: 7 }, (_, i) => ({
     dayOfWeek: i + 1,
@@ -252,7 +256,6 @@ async function loadTemplate() {
   templateLoading.value = true
   try {
     const list = await getScheduleTemplate()
-    // list: [{dayOfWeek, isWork, startTime, endTime}, ...]
     const map = {}
     list.forEach(d => { map[d.dayOfWeek] = d })
     templateDays.value = Array.from({ length: 7 }, (_, i) => {
@@ -273,7 +276,6 @@ async function loadTemplate() {
 }
 
 async function saveTemplate() {
-  // 校验：isWork=true 时必须填时间
   for (const d of templateDays.value) {
     if (d.isWork && (!d.startTimeDate || !d.endTimeDate)) {
       ElMessage.warning(`${DAY_NAMES[d.dayOfWeek - 1]} 已开启但未填写时间`)
@@ -297,12 +299,9 @@ async function saveTemplate() {
   }
 }
 
-// ─── 日历数据 ──────────────────────────────────────────
 const calLoading = ref(false)
-/** 当月 override 列表，key by dateStr */
-const overrideMap = ref({})     // { "2025-01-15": {id, isOff, startTime, ...} }
-/** 当月有效时段锁定，key by dateStr，value 为时段数组 */
-const lockMap = ref({})         // { "2025-01-15": [{startTime, endTime}, ...] }
+const overrideMap = ref({})
+const lockMap = ref({})
 
 async function loadCalData() {
   calLoading.value = true
@@ -314,7 +313,6 @@ async function loadCalData() {
     const ovMap = {}
     overrides.forEach(o => { ovMap[o.date] = o })
     overrideMap.value = ovMap
-    // 按日期分组时段
     const lkMap = {}
     lockSlots.forEach(s => {
       if (!lkMap[s.date]) lkMap[s.date] = []
@@ -328,24 +326,18 @@ async function loadCalData() {
   }
 }
 
-// 日历格子计算
 const calendarCells = computed(() => {
   const y = currentYear.value
   const m = currentMonth.value
-  const firstWeekday = new Date(y, m - 1, 1).getDay() // 0=Sun
+  const firstWeekday = new Date(y, m - 1, 1).getDay()
   const daysInMonth  = new Date(y, m, 0).getDate()
   const today = new Date()
-
   const cells = []
-
-  // 前补上月末日
   const prevDays = new Date(y, m - 1, 0).getDate()
   for (let i = firstWeekday - 1; i >= 0; i--) {
     cells.push({ key: `p${i}`, day: prevDays - i, inMonth: false, isToday: false,
       hasOverride: false, lockSlots: [], overrideLabel: '', dateStr: '' })
   }
-
-  // 本月
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
     const isToday = today.getFullYear() === y && today.getMonth() + 1 === m && today.getDate() === d
@@ -357,16 +349,8 @@ const calendarCells = computed(() => {
         : `可接单 ${ov.startTime ?? ''}-${ov.endTime ?? ''}`
     }
     const slots = lockMap.value[dateStr] || []
-    cells.push({
-      key: dateStr, day: d, inMonth: true, isToday,
-      hasOverride: !!ov,
-      lockSlots: slots,
-      overrideLabel,
-      dateStr,
-    })
+    cells.push({ key: dateStr, day: d, inMonth: true, isToday, hasOverride: !!ov, lockSlots: slots, overrideLabel, dateStr })
   }
-
-  // 后补（补满 6 行 = 42 格）
   const remaining = 42 - cells.length
   for (let d = 1; d <= remaining; d++) {
     cells.push({ key: `n${d}`, day: d, inMonth: false, isToday: false,
@@ -375,18 +359,11 @@ const calendarCells = computed(() => {
   return cells
 })
 
-// ─── 特殊调整 Dialog ───────────────────────────────────
 const dialogVisible    = ref(false)
 const submitting       = ref(false)
 const selectedDate     = ref('')
 const existingOverrideId = ref(null)
-
-const form = ref({
-  isOff: 1,
-  startTimeDate: null,
-  endTimeDate: null,
-  remark: '',
-})
+const form = ref({ isOff: 1, startTimeDate: null, endTimeDate: null, remark: '' })
 
 function openDialog(dateStr) {
   selectedDate.value = dateStr
@@ -452,20 +429,13 @@ async function removeOverride() {
   }
 }
 
-// ─── 一键设置工作日（周一~周六 09:00-20:00，周日关闭） ──
 function quickSet() {
   templateDays.value = templateDays.value.map(d => {
-    const isWork = d.dayOfWeek <= 6 // 1~6 工作，7=周日关闭
-    return {
-      ...d,
-      isWork,
-      startTimeDate: isWork ? strToDate('09:00') : null,
-      endTimeDate:   isWork ? strToDate('20:00') : null,
-    }
+    const isWork = d.dayOfWeek <= 6
+    return { ...d, isWork, startTimeDate: isWork ? strToDate('09:00') : null, endTimeDate: isWork ? strToDate('20:00') : null }
   })
 }
 
-// ─── 初始化 ────────────────────────────────────────────
 onMounted(() => {
   loadTemplate()
   loadCalData()
@@ -473,135 +443,163 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.schedule-wrap { min-height: 100%; }
+.schedule-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: calc(100vh - 60px - 68px);
+}
 
-/* ── 左侧周模板 ── */
+/* ── 顶部 ── */
+.page-header {
+  background: #fff;
+  border: 1.5px solid #E0EBE0;
+  border-radius: 16px;
+  padding: 18px 24px;
+}
+.page-title { font-size: 22px; font-weight: 800; color: #1C3D2A; margin: 0 0 4px; }
+.page-sub { font-size: 13px; color: #6B7280; margin: 0; }
+
+/* ── 双栏布局 ── */
+.schedule-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 16px;
+  flex: 1;
+  align-items: stretch;
+}
+
+.template-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.template-list {
+  flex: 1;
+}
+
+.panel {
+  background: #fff;
+  border: 1.5px solid #E0EBE0;
+  border-radius: 16px;
+  padding: 20px 22px;
+}
+.panel-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 18px;
+}
+.panel-header-left { display: flex; align-items: center; gap: 8px; }
+.panel-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.panel-dot--green  { background: #2A6B47; box-shadow: 0 0 0 3px #DCFCE7; }
+.panel-dot--orange { background: #D97706; box-shadow: 0 0 0 3px #FEF3C7; }
+.panel-title { font-size: 16px; font-weight: 700; color: #1C3D2A; }
+
+/* ── 周模板 ── */
+.template-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
 .template-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid #f0f0f0;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #E5E7EB;
+  background: #FAFBFA;
+  transition: all .18s;
 }
-.template-row:last-of-type { border-bottom: none; }
-.day-label {
-  width: 36px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #303133;
-  flex-shrink: 0;
+.template-row--active {
+  border-color: #6EE7A0;
+  background: #F0FDF4;
 }
-.sep { color: #c0c4cc; font-size: 12px; }
+.day-info { display: flex; align-items: center; gap: 8px; width: 70px; flex-shrink: 0; }
+.day-label { font-size: 13px; font-weight: 700; color: #1C3D2A; width: 28px; }
+.time-pickers { display: flex; align-items: center; gap: 6px; flex: 1; }
+.time-pickers--disabled { opacity: .45; }
+.time-sep { font-size: 12px; color: #9CA3AF; }
+.day-status { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.status-dot-on  { width: 6px; height: 6px; border-radius: 50%; background: #2A6B47; }
+.status-dot-off { width: 6px; height: 6px; border-radius: 50%; background: #D1D5DB; }
+.status-text-on  { font-size: 11px; color: #2A6B47; font-weight: 600; }
+.status-text-off { font-size: 11px; color: #9CA3AF; }
 .template-footer {
-  margin-top: 20px;
-  text-align: right;
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding-top: 16px; border-top: 1px solid #E5EDE5;
 }
 
-/* ── 右侧日历 ── */
-.cal-header-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.month-nav {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.year-month { font-size: 14px; font-weight: 600; color: #303133; }
+/* ── 月历导航 ── */
+.month-nav { display: flex; align-items: center; gap: 10px; }
+.year-month { font-size: 14px; font-weight: 700; color: #1C3D2A; white-space: nowrap; }
 
+/* ── 图例 ── */
 .legend {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 12px;
-  font-size: 12px;
-  color: #606266;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 14px; font-size: 12px; color: #6B7280; flex-wrap: wrap;
 }
-.legend-item { display: flex; align-items: center; gap: 4px; }
-.legend-tip { margin-left: auto; color: #909399; }
-.dot {
-  width: 10px; height: 10px;
-  border-radius: 2px;
-  display: inline-block;
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-tip { margin-left: auto; color: #9CA3AF; font-style: italic; }
+.legend-dot {
+  width: 11px; height: 11px; border-radius: 3px; display: inline-block;
 }
-.dot-override { background: #f59e0b; }
-.dot-lock     { background: #ef4444; }
+.legend-dot--override { background: #D97706; }
+.legend-dot--lock     { background: #EF4444; }
+.legend-dot--today    { background: #2A6B47; border-radius: 50%; }
 
-/* 日历主体 */
+/* ── 日历 ── */
 .calendar {
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border: 1.5px solid #E0EBE0;
+  border-radius: 12px;
   overflow: hidden;
 }
 .cal-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background: #f5f5ff;
+  background: #F0F5F0;
+  border-bottom: 1.5px solid #E0EBE0;
 }
 .cal-weekday {
   text-align: center;
-  padding: 8px 0;
+  padding: 10px 0;
   font-size: 12px;
-  font-weight: 600;
-  color: #5b21b6;
+  font-weight: 700;
+  color: #2A6B47;
 }
 .cal-body {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
 }
 .cal-cell {
-  min-height: 72px;
-  border-top: 1px solid #e4e7ed;
-  border-right: 1px solid #e4e7ed;
-  padding: 6px;
+  min-height: 78px;
+  border-top: 1px solid #E5EDE5;
+  border-right: 1px solid #E5EDE5;
+  padding: 7px 6px;
   position: relative;
   box-sizing: border-box;
+  transition: background .15s;
 }
 .cal-cell:nth-child(7n) { border-right: none; }
-.cal-cell.other-month { background: #fafafa; }
-.cal-cell.other-month .cell-date { color: #c0c4cc; }
-.cal-cell.clickable {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.cal-cell.clickable:hover { background: #f5f0ff; }
+.cal-cell.other-month { background: #FAFBFA; }
+.cal-cell.other-month .cell-date { color: #D1D5DB; }
+.cal-cell.clickable { cursor: pointer; }
+.cal-cell.clickable:hover { background: #F0FDF4; }
+.cal-cell.is-today { background: #F0FDF4; }
+.cal-cell.has-override { background: #FFFBEB; }
 
 .cell-date {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 13px; font-weight: 500;
   margin-bottom: 4px;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
 }
 .today-badge {
-  background: #5b21b6;
-  color: #fff;
-  border-radius: 50%;
-  font-weight: 700;
+  background: #2A6B47; color: #fff;
+  border-radius: 50%; font-weight: 700;
 }
-
-.cell-marks {
-  display: flex;
-  gap: 3px;
-  flex-wrap: wrap;
-}
+.cell-marks { display: flex; gap: 3px; flex-wrap: wrap; }
 .mark {
-  font-size: 10px;
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-weight: 600;
-  line-height: 1.5;
+  font-size: 9px; padding: 1px 4px;
+  border-radius: 4px; font-weight: 700; line-height: 1.5;
 }
-.mark-override { background: #fef3c7; color: #92400e; }
-.mark-lock {
-  background: #fee2e2;
-  color: #991b1b;
-  white-space: nowrap;
-  font-size: 9px;
-  letter-spacing: -0.3px;
-}
+.mark-override { background: #FEF3C7; color: #B45309; }
+.mark-lock     { background: #FEE2E2; color: #B91C1C; white-space: nowrap; letter-spacing: -0.3px; }
 </style>

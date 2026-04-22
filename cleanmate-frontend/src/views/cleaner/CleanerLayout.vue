@@ -8,7 +8,7 @@
         </div>
         <el-menu mode="horizontal" :router="true" :default-active="$route.path" class="nav-menu">
           <el-menu-item index="/cleaner/home">工作台</el-menu-item>
-          <el-menu-item index="/cleaner/grab">接单大厅</el-menu-item>
+          <el-menu-item index="/cleaner/grab">抢单池</el-menu-item>
           <el-menu-item index="/cleaner/orders">
             <el-badge :value="pendingDispatchCount || ''" :hidden="!pendingDispatchCount" type="danger">
               我的订单
@@ -17,6 +17,7 @@
           <el-menu-item index="/cleaner/schedule">档期管理</el-menu-item>
           <el-menu-item index="/cleaner/income">收入明细</el-menu-item>
           <el-menu-item index="/cleaner/reviews">我的评价</el-menu-item>
+          <el-menu-item index="/cleaner/profile">个人中心</el-menu-item>
         </el-menu>
         <div class="header-right">
           <el-badge :value="unreadCount || ''" :hidden="!unreadCount" type="danger" style="margin-right:16px">
@@ -24,16 +25,14 @@
           </el-badge>
           <el-dropdown trigger="click" @command="handleCommand">
             <span class="user-info">
-              <el-avatar :size="32" style="background:#C8D4C4;color:#4A6A44;font-weight:600">
+              <el-avatar :size="32" style="background:#2A6B47;color:#fff;font-weight:700">
                 {{ userStore.userInfo?.nickname?.charAt(0) }}
               </el-avatar>
               <span class="username">{{ userStore.userInfo?.nickname }}</span>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="notifications">消息中心</el-dropdown-item>
-                <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -130,14 +129,18 @@ function handleCommand(command) {
   min-height: 100vh;
   background: #F8F7F4;
 
-  /* Element Plus 主色覆盖为莫兰迪鼠尾草绿 */
-  --el-color-primary:         #8FA888;
-  --el-color-primary-dark-2:  #7A9A72;
-  --el-color-primary-light-3: #B8CCBA;
-  --el-color-primary-light-5: #C8D8C8;
-  --el-color-primary-light-7: #DAE6DA;
-  --el-color-primary-light-8: #E4EEE4;
-  --el-color-primary-light-9: #EDF4ED;
+  /* 全局字体统一 */
+  --el-font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  font-family: var(--el-font-family);
+
+  /* Element Plus 主色：墨绿 */
+  --el-color-primary:         #2A6B47;
+  --el-color-primary-dark-2:  #1B4D32;
+  --el-color-primary-light-3: #5DA078;
+  --el-color-primary-light-5: #94C4A8;
+  --el-color-primary-light-7: #C2DDD0;
+  --el-color-primary-light-8: #D5EBE2;
+  --el-color-primary-light-9: #E6F4EE;
 }
 
 .header {
@@ -171,10 +174,10 @@ function handleCommand(command) {
 .brand-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #8FA888;
-  background: #EDF4ED;
-  border-radius: 4px;
-  padding: 2px 7px;
+  color: #fff;
+  background: #2A6B47;
+  border-radius: 6px;
+  padding: 2px 8px;
   line-height: 1.5;
 }
 
@@ -184,20 +187,21 @@ function handleCommand(command) {
 .user-info { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .username { font-size: 15px; color: #5A5450; }
 
-/* 保洁员端导航激活色：莫兰迪鼠尾草绿 */
+/* 保洁员端导航激活色：墨绿 */
 :deep(.el-menu--horizontal > .el-menu-item.is-active) {
-  border-bottom-color: #8FA888 !important;
-  color: #8FA888 !important;
+  border-bottom-color: #2A6B47 !important;
+  color: #2A6B47 !important;
+  font-weight: 600 !important;
 }
 :deep(.el-menu--horizontal > .el-menu-item:not(.is-disabled):hover) {
-  color: #8FA888 !important;
+  color: #2A6B47 !important;
 }
 :deep(.el-menu--horizontal) {
   --el-menu-hover-bg-color: transparent;
   --el-menu-bg-color: transparent;
 }
 :deep(.el-menu--horizontal > .el-menu-item) {
-  color: #5A5450;
+  color: #4A5568;
   font-size: 15px !important;
 }
 

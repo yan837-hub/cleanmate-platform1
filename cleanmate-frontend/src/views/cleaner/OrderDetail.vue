@@ -167,13 +167,13 @@
             <span>准时到达 <el-rate :model-value="orderReview.scorePunctual" disabled size="small" /></span>
           </div>
           <div v-if="orderReview.content" style="margin-top:8px;color:#6b7280;font-size:13px">{{ orderReview.content }}</div>
-          <div v-if="orderReview.imgs" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+          <div v-if="orderReview.imgs?.split(',').some(Boolean)" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
             <el-image
-              v-for="url in orderReview.imgs.split(',')"
+              v-for="url in orderReview.imgs.split(',').filter(Boolean)"
               :key="url"
               :src="url"
               style="width:72px;height:72px;border-radius:4px;object-fit:cover"
-              :preview-src-list="orderReview.imgs.split(',')"
+              :preview-src-list="orderReview.imgs.split(',').filter(Boolean)"
               fit="cover"
             />
           </div>

@@ -1,83 +1,107 @@
 <template>
-  <div>
-    <!-- 月份选择 + 汇总 -->
-    <el-card v-loading="loading">
-      <template #header>
-        <div style="display:flex; justify-content:space-between; align-items:center">
-          <span style="font-size:16px; font-weight:600">收入明细</span>
-          <el-date-picker
-            v-model="selectedMonth"
-            type="month"
-            format="YYYY年MM月"
-            value-format="YYYY-MM"
-            :clearable="false"
-            style="width:160px"
-            @change="loadIncome"
-          />
+  <div class="income-wrap">
+    <!-- 顶部：标题 + 月份选择 -->
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">收入明细</h2>
+        <p class="page-sub">查看您的服务收入与佣金明细</p>
+      </div>
+      <el-date-picker
+        v-model="selectedMonth"
+        type="month"
+        format="YYYY年MM月"
+        value-format="YYYY-MM"
+        :clearable="false"
+        style="width:170px"
+        @change="loadIncome"
+      />
+    </div>
+
+    <!-- 三张汇总卡片 -->
+    <div class="stat-row" v-loading="loading">
+      <div class="stat-card stat-card--green">
+        <div class="stat-card-icon">📦</div>
+        <div class="stat-card-body">
+          <div class="stat-card-value">{{ summary.orderCount }}</div>
+          <div class="stat-card-label">完成订单</div>
         </div>
-      </template>
+        <div class="stat-card-sub">单</div>
+      </div>
+      <div class="stat-card stat-card--orange">
+        <div class="stat-card-icon">💰</div>
+        <div class="stat-card-body">
+          <div class="stat-card-value">¥{{ summary.totalIncome }}</div>
+          <div class="stat-card-label">我的收入</div>
+        </div>
+        <div class="stat-card-sub">本月到手</div>
+      </div>
+      <div class="stat-card stat-card--gray">
+        <div class="stat-card-icon">📊</div>
+        <div class="stat-card-body">
+          <div class="stat-card-value">¥{{ summary.totalCommission }}</div>
+          <div class="stat-card-label">平台佣金</div>
+        </div>
+        <div class="stat-card-sub">{{ commissionRateText }}</div>
+      </div>
+    </div>
 
-      <!-- 汇总卡片 -->
-      <el-row :gutter="16" style="margin-bottom:24px">
-        <el-col :span="8">
-          <div class="stat-box" style="background:#EDF4ED">
-            <div class="stat-num" style="color:#3A3734">{{ summary.orderCount }}</div>
-            <div class="stat-lbl">完成订单</div>
-          </div>
-        </el-col>
-        <el-col :span="8">
-          <div class="stat-box" style="background:#F8F5EF">
-            <div class="stat-num" style="color:#3A3734">¥{{ summary.totalIncome }}</div>
-            <div class="stat-lbl">我的收入</div>
-          </div>
-        </el-col>
-        <el-col :span="8">
-          <div class="stat-box" style="background:#EEF2F5">
-            <div class="stat-num" style="color:#8A857E">¥{{ summary.totalCommission }}</div>
-            <div class="stat-lbl">平台佣金（{{ commissionRateText }}）</div>
-          </div>
-        </el-col>
-      </el-row>
+    <!-- 明细表格 -->
+    <div class="table-card" v-loading="loading">
+      <div class="table-header">
+        <span class="table-title">收入明细列表</span>
+        <span v-if="items.length > 0" class="table-summary">
+          共 <b>{{ summary.orderCount }}</b> 笔 · 订单总额
+          <b>¥{{ totalActualFee }}</b> · 我的收入合计
+          <b class="income-hl">¥{{ summary.totalIncome }}</b>
+        </span>
+      </div>
 
-      <!-- 明细表格 -->
-      <el-table :data="items" stripe border>
-        <el-table-column label="订单号" prop="orderNo" width="200" />
-        <el-table-column label="服务类型" prop="serviceTypeName" width="120" />
-        <el-table-column label="完成时间" width="170">
-          <template #default="{ row }">{{ formatTime(row.completedAt) }}</template>
+      <el-table
+        :data="items"
+        stripe
+        style="width:100%"
+        :header-cell-style="{ background: '#F3F6F3', color: '#374151', fontWeight: '600', fontSize: '13px' }"
+      >
+        <el-table-column label="订单号" prop="orderNo" width="210">
+          <template #default="{ row }">
+            <span class="order-no-mono">{{ row.orderNo }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="服务类型" prop="serviceTypeName" width="130">
+          <template #default="{ row }">
+            <span class="svc-badge">{{ row.serviceTypeName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="完成时间" min-width="160">
+          <template #default="{ row }">
+            <span class="time-text">{{ formatTime(row.completedAt) }}</span>
+          </template>
         </el-table-column>
         <el-table-column label="订单金额" width="140" align="right">
           <template #default="{ row }">
-            <span>¥{{ row.actualFee ?? '-' }}</span>
+            <span class="actual-fee">¥{{ row.actualFee ?? '-' }}</span>
             <el-tag v-if="row.refundOccurred" type="danger" size="small" style="margin-left:4px">退款</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="平台佣金" width="110" align="right">
+        <el-table-column label="平台佣金" width="120" align="right">
           <template #default="{ row }">
-            <span style="color:#8A857E">¥{{ row.commissionFee ?? '-' }}</span>
+            <span class="commission-fee">¥{{ row.commissionFee ?? '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="我的收入" width="110" align="right">
+        <el-table-column label="我的收入" width="130" align="right">
           <template #default="{ row }">
-            <span style="color:#3A3734; font-weight:700">¥{{ row.cleanerIncome ?? '-' }}</span>
+            <span class="cleaner-income">¥{{ row.cleanerIncome ?? '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="结算状态" width="100" align="center">
+        <el-table-column label="结算状态" width="110" align="center">
           <template #default>
-            <el-tag type="success" size="small">已结算</el-tag>
+            <span class="settled-chip">已结算</span>
           </template>
         </el-table-column>
       </el-table>
 
-      <el-empty v-if="!loading && items.length === 0" description="本月暂无收入记录" />
-
-      <!-- 底部合计 -->
-      <div v-if="items.length > 0" class="income-footer">
-        <span>共 {{ summary.orderCount }} 笔订单</span>
-        <span>订单总额：<b>¥{{ totalActualFee }}</b></span>
-        <span>我的收入合计：<b style="color:#3A3734">¥{{ summary.totalIncome }}</b></span>
-      </div>
-    </el-card>
+      <el-empty v-if="!loading && items.length === 0" description="本月暂无收入记录" style="padding: 48px 0" />
+    </div>
   </div>
 </template>
 
@@ -89,8 +113,8 @@ import { formatTime } from '@/utils/time'
 import request from '@/utils/request'
 
 const loading = ref(false)
-const selectedMonth = ref(new Date().toISOString().slice(0, 7)) // 默认当月
-const commissionRateText = ref('20%') // 默认值，加载后从系统配置覆盖
+const selectedMonth = ref(new Date().toISOString().slice(0, 7))
+const commissionRateText = ref('20%')
 
 const summary = ref({ orderCount: 0, totalIncome: 0, totalCommission: 0 })
 const items = ref([])
@@ -123,23 +147,113 @@ onMounted(async () => {
     if (cfg?.commission_rate) {
       commissionRateText.value = (parseFloat(cfg.commission_rate) * 100).toFixed(0) + '%'
     }
-  } catch { /* 保持默认值 */ }
+  } catch {}
 })
 </script>
 
 <style scoped>
-.stat-box { border-radius: 10px; padding: 18px 16px; text-align: center; }
-.stat-num { font-size: 26px; font-weight: 700; }
-.stat-lbl { font-size: 12px; color: #8A857E; margin-top: 5px; }
-
-.income-footer {
+.income-wrap {
   display: flex;
-  justify-content: flex-end;
-  gap: 24px;
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid #EDE8DF;
-  font-size: 14px;
-  color: #5A5450;
+  flex-direction: column;
+  gap: 16px;
+  min-height: calc(100vh - 60px - 68px);
+}
+
+/* ── 顶部 ── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  border: 1.5px solid #E0EBE0;
+  border-radius: 16px;
+  padding: 18px 24px;
+}
+.page-title { font-size: 22px; font-weight: 800; color: #1C3D2A; margin: 0 0 4px; }
+.page-sub { font-size: 13px; color: #6B7280; margin: 0; }
+
+/* ── 汇总卡片 ── */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.stat-card {
+  background: #fff;
+  border: 1.5px solid #E0EBE0;
+  border-radius: 16px;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 5px;
+  border-radius: 16px 0 0 16px;
+}
+.stat-card--green::before  { background: #2A6B47; }
+.stat-card--orange::before { background: #D97706; }
+.stat-card--gray::before   { background: #6B7280; }
+.stat-card-icon {
+  font-size: 36px;
+  width: 64px; height: 64px;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.stat-card--green .stat-card-icon  { background: #DCFCE7; }
+.stat-card--orange .stat-card-icon { background: #FEF3C7; }
+.stat-card--gray .stat-card-icon   { background: #F3F4F6; }
+.stat-card-body { flex: 1; }
+.stat-card-value {
+  font-size: 32px; font-weight: 800; color: #1C3D2A;
+  line-height: 1; letter-spacing: -1px; margin-bottom: 6px;
+}
+.stat-card--orange .stat-card-value { color: #D97706; }
+.stat-card-label { font-size: 14px; color: #6B7280; font-weight: 500; }
+.stat-card-sub {
+  font-size: 12px; color: #9CA3AF;
+  background: #F3F4F6; border-radius: 8px;
+  padding: 4px 10px; white-space: nowrap;
+}
+
+/* ── 表格卡片 ── */
+.table-card {
+  background: #fff;
+  border: 1.5px solid #E0EBE0;
+  border-radius: 16px;
+  overflow: hidden;
+  flex: 1;
+}
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #E5EDE5;
+}
+.table-title { font-size: 15px; font-weight: 700; color: #1C3D2A; }
+.table-summary { font-size: 13px; color: #6B7280; }
+.income-hl { color: #2A6B47; }
+
+/* 表格内容 */
+.order-no-mono { font-size: 12px; color: #6B7280; font-family: monospace; }
+.svc-badge {
+  font-size: 11px; font-weight: 700; color: #2A6B47;
+  background: #DCFCE7; border-radius: 20px; padding: 2px 9px;
+}
+.time-text { font-size: 13px; color: #4B5563; }
+.actual-fee { font-size: 14px; font-weight: 600; color: #374151; }
+.commission-fee { font-size: 13px; color: #9CA3AF; }
+.cleaner-income { font-size: 15px; font-weight: 800; color: #D97706; }
+.settled-chip {
+  display: inline-block;
+  font-size: 11px; font-weight: 700;
+  color: #15803D; background: #DCFCE7;
+  border-radius: 20px; padding: 3px 10px;
 }
 </style>

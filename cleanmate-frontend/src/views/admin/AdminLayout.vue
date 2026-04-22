@@ -138,7 +138,7 @@ function handleCommand(command) {
   display: flex;
   flex-direction: column;
   letter-spacing: -0.3px;
-  font-family: 'Inter', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
 }
 
 .sidebar-logo small {
@@ -206,7 +206,7 @@ function handleCommand(command) {
   font-size: 16px;
   font-weight: 600;
   color: #4A4A4A;
-  font-family: 'Inter', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
 }
 
 .user-info {
@@ -216,7 +216,7 @@ function handleCommand(command) {
   cursor: pointer;
   font-size: 14px;
   color: #9CA3AF;
-  font-family: 'Inter', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
 }
 
 .admin-main {

@@ -1,55 +1,60 @@
 <template>
-  <div>
-    <!-- 页面标题栏 -->
+  <div class="grab-wrap">
+    <!-- 顶部栏 -->
     <div class="page-header">
-      <div>
+      <div class="header-left">
         <h2 class="page-title">抢单池</h2>
-        <p class="page-sub" v-if="total > 0">共 <b>{{ total }}</b> 个可抢订单，先到先得</p>
-        <p class="page-sub" v-else>暂无待抢订单，稍后刷新试试</p>
+        <p class="page-sub" v-if="total > 0">
+          当前 <b class="count-hl">{{ total }}</b> 个订单可抢，先到先得
+        </p>
+        <p class="page-sub" v-else>暂无待抢订单，系统每30秒自动刷新</p>
       </div>
-      <el-button :icon="Refresh" @click="loadPool" :loading="loading" round>刷新列表</el-button>
+      <div class="header-right">
+        <div class="auto-refresh-tip">⟳ 每30秒自动刷新</div>
+        <el-button :icon="Refresh" @click="loadPool" :loading="loading" type="primary" round size="default">
+          立即刷新
+        </el-button>
+      </div>
     </div>
 
-    <el-empty v-if="!loading && list.length === 0" description="暂无待抢订单" :image-size="100" style="margin-top:40px;background:#fff;border-radius:12px;padding:48px 0" />
+    <!-- 空状态 -->
+    <div v-if="!loading && list.length === 0" class="empty-wrap">
+      <el-empty description="暂无待抢订单，稍后刷新试试" :image-size="120" />
+    </div>
 
+    <!-- 订单列表 -->
     <div v-else class="order-list" v-loading="loading">
-      <el-card
-        v-for="order in list"
-        :key="order.id"
-        shadow="hover"
-        class="order-card"
-      >
+      <div v-for="order in list" :key="order.id" class="order-card">
+        <div class="card-status-bar"></div>
         <div class="card-inner">
-          <!-- 左：标题 + 信息 -->
-          <div class="card-left">
-            <div class="card-top">
-              <el-tag type="warning" size="small" round>待派单</el-tag>
-              <span class="order-no">{{ order.orderNo }}</span>
+          <!-- 左：类型图标 -->
+          <div class="card-icon">{{ svcEmoji(order.serviceTypeName) }}</div>
+
+          <!-- 中：信息区 -->
+          <div class="card-body">
+            <div class="card-top-row">
+              <span class="svc-type-badge">{{ order.serviceTypeName }}</span>
+              <span class="order-no-text">{{ order.orderNo }}</span>
             </div>
-            <div class="card-meta">
-              <div class="meta-item">
-                <el-icon><ShoppingBag /></el-icon>
-                <span>{{ order.serviceTypeName }}</span>
-              </div>
-              <div class="meta-sep">|</div>
-              <div class="meta-item">
-                <el-icon><Clock /></el-icon>
-                <span>预约：{{ formatTime(order.appointTime) }}</span>
-              </div>
+            <div class="card-meta-row">
+              <span class="meta-item">
+                <el-icon size="13"><Clock /></el-icon>
+                预约：{{ formatTime(order.appointTime) }}
+              </span>
               <template v-if="order.planDuration">
-                <div class="meta-sep">|</div>
-                <div class="meta-item">
-                  <el-icon><Timer /></el-icon>
-                  <span>时长：{{ order.planDuration }} 分钟</span>
-                </div>
+                <span class="meta-sep">·</span>
+                <span class="meta-item">
+                  <el-icon size="13"><Timer /></el-icon>
+                  时长：{{ order.planDuration }} 分钟
+                </span>
               </template>
             </div>
-            <div class="card-addr">
-              <el-icon><Location /></el-icon>
+            <div class="card-addr-row">
+              <el-icon size="13" color="#2A6B47"><Location /></el-icon>
               <span>{{ order.addressSnapshot }}</span>
             </div>
-            <div class="card-remark" v-if="order.remark">
-              <el-icon><ChatDotRound /></el-icon>
+            <div v-if="order.remark" class="card-remark-row">
+              <el-icon size="13"><ChatDotRound /></el-icon>
               <span>{{ order.remark }}</span>
             </div>
           </div>
@@ -57,30 +62,27 @@
           <!-- 右：距离 + 收入 + 按钮 -->
           <div class="card-right">
             <div v-if="order.distanceKm != null" class="distance-badge">
-              📍 {{ order.distanceKm }} km
+              <el-icon size="12"><Location /></el-icon>
+              {{ order.distanceKm }} km
             </div>
-            <div class="income-wrap">
+            <div class="income-block">
               <div class="income-label">预计到手</div>
-              <div class="income-fee">
-                ¥ {{ order.estimatedIncome ?? order.estimateFee ?? '--' }}
-              </div>
+              <div class="income-fee">¥{{ order.estimatedIncome ?? order.estimateFee ?? '--' }}</div>
               <div class="origin-fee" v-if="order.estimatedIncome != null">
-                订单金额 ¥{{ order.estimateFee }}
+                订单 ¥{{ order.estimateFee }}
               </div>
             </div>
-            <el-button
-              type="primary"
-              size="large"
-              round
-              :loading="grabbingId === order.id"
+            <button
+              class="grab-action-btn"
+              :disabled="grabbingId === order.id"
               @click="handleGrab(order)"
-              style="width: 130px"
             >
-              立即抢单
-            </el-button>
+              <span v-if="grabbingId === order.id">处理中...</span>
+              <span v-else>立即抢单</span>
+            </button>
           </div>
         </div>
-      </el-card>
+      </div>
     </div>
 
     <div class="pagination" v-if="total > pageSize">
@@ -111,6 +113,17 @@ const loading = ref(false)
 const grabbingId = ref(null)
 
 let timer = null
+
+function svcEmoji(name) {
+  if (!name) return '🧹'
+  if (name.includes('日常')) return '🏠'
+  if (name.includes('深度')) return '✨'
+  if (name.includes('开荒')) return '🏗️'
+  if (name.includes('家电') || name.includes('油烟')) return '🔌'
+  if (name.includes('玻璃')) return '🪟'
+  if (name.includes('地板')) return '🌿'
+  return '🧹'
+}
 
 async function loadPool() {
   loading.value = true
@@ -145,10 +158,8 @@ async function handleGrab(order) {
   }
 }
 
-
 onMounted(() => {
   loadPool()
-  // 每30秒自动刷新
   timer = setInterval(loadPool, 30000)
 })
 
@@ -158,64 +169,136 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.grab-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: calc(100vh - 60px - 68px);
+}
+
+/* ── 顶部栏 ── */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  background: #fff;
+  border: 1.5px solid #E0EBE0;
+  border-radius: 16px;
+  padding: 18px 24px;
 }
-.page-title { font-size: 20px; font-weight: 700; color: #3A3734; margin: 0 0 4px; }
-.page-sub { font-size: 13px; color: #8A857E; margin: 0; }
-.page-sub b { color: #8FA888; }
+.header-left {}
+.page-title { font-size: 22px; font-weight: 800; color: #1C3D2A; margin: 0 0 4px; }
+.page-sub { font-size: 13px; color: #6B7280; margin: 0; }
+.count-hl { color: #2A6B47; font-size: 16px; font-weight: 800; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.auto-refresh-tip { font-size: 12px; color: #9CA3AF; }
 
-.order-list { display: flex; flex-direction: column; gap: 14px; }
+/* ── 空状态 ── */
+.empty-wrap {
+  flex: 1;
+  background: #fff;
+  border: 1.5px solid #E0EBE0;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+}
+
+/* ── 订单列表 ── */
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 .order-card {
-  border-left: 4px solid #C8D4C4 !important;
-  border-radius: 12px !important;
-  border-color: #EDE8DF !important;
+  background: #fff;
+  border: 1.5px solid #E0EBE0;
+  border-radius: 16px;
+  overflow: hidden;
   transition: transform .18s, box-shadow .18s;
+  position: relative;
 }
-.order-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08) !important; }
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,.09);
+  border-color: #6EE7A0;
+}
+.card-status-bar {
+  height: 4px;
+  background: linear-gradient(90deg, #2A6B47, #4ADE80);
+}
+.card-inner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+}
 
-.card-inner { display: flex; align-items: center; gap: 24px; }
-.card-left { flex: 1; min-width: 0; }
+/* 类型图标 */
+.card-icon {
+  width: 56px; height: 56px; border-radius: 14px;
+  background: #E6F4EE;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; flex-shrink: 0;
+}
+
+/* 信息区 */
+.card-body { flex: 1; min-width: 0; }
+.card-top-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.svc-type-badge {
+  font-size: 12px; font-weight: 700; color: #2A6B47;
+  background: #DCFCE7; border-radius: 20px; padding: 3px 12px;
+}
+.order-no-text { font-size: 12px; color: #9CA3AF; }
+.card-meta-row {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap; margin-bottom: 8px;
+  font-size: 13px; color: #374151;
+}
+.meta-item { display: flex; align-items: center; gap: 4px; }
+.meta-item .el-icon { color: #2A6B47; }
+.meta-sep { color: #D1D5DB; }
+.card-addr-row {
+  display: flex; align-items: flex-start;
+  gap: 5px; font-size: 13px; color: #4B5563; line-height: 1.5;
+}
+.card-remark-row {
+  display: flex; align-items: flex-start;
+  gap: 5px; font-size: 12px; color: #9CA3AF; margin-top: 6px;
+}
+
+/* 右侧 */
 .card-right {
   display: flex; flex-direction: column;
-  align-items: center; gap: 14px; flex-shrink: 0;
+  align-items: center; gap: 12px; flex-shrink: 0;
+  min-width: 150px;
 }
-
-.card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.order-no { font-size: 12px; color: #B8B0A8; }
-
-.card-meta {
-  display: flex; align-items: center;
-  gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
-}
-.meta-item { display: flex; align-items: center; gap: 5px; font-size: 14px; color: #3A3734; }
-.meta-item .el-icon { color: #8FA888; font-size: 15px; }
-.meta-sep { color: #D8D2CA; font-size: 12px; }
-
-.card-addr {
-  display: flex; align-items: flex-start;
-  gap: 6px; font-size: 13px; color: #8A857E; line-height: 1.5;
-}
-.card-addr .el-icon { color: #8FA888; flex-shrink: 0; margin-top: 2px; }
-
-.card-remark {
-  display: flex; align-items: flex-start;
-  gap: 6px; font-size: 13px; color: #B8B0A8; margin-top: 6px;
-}
-.card-remark .el-icon { flex-shrink: 0; margin-top: 2px; }
-
 .distance-badge {
-  font-size: 12px; color: #8A857E;
-  background: #F5F2EE; padding: 3px 10px; border-radius: 20px;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; color: #6B7280;
+  background: #F3F4F6; padding: 4px 12px; border-radius: 20px;
 }
-.income-wrap { text-align: center; }
-.income-label { font-size: 11px; color: #8A857E; margin-bottom: 4px; }
-.income-fee { font-size: 26px; font-weight: 700; color: #3A3734; white-space: nowrap; }
-.origin-fee { font-size: 11px; color: #B8B0A8; margin-top: 3px; }
+.income-block { text-align: center; }
+.income-label { font-size: 11px; color: #9CA3AF; margin-bottom: 4px; }
+.income-fee { font-size: 28px; font-weight: 800; color: #D97706; white-space: nowrap; line-height: 1; }
+.origin-fee { font-size: 11px; color: #9CA3AF; margin-top: 3px; }
 
-.pagination { margin-top: 28px; display: flex; justify-content: center; }
+.grab-action-btn {
+  background: linear-gradient(135deg, #2A6B47, #1B4D32);
+  color: #fff; border: none;
+  border-radius: 50px;
+  padding: 11px 0; width: 130px;
+  font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: all .18s;
+  box-shadow: 0 4px 14px rgba(42,107,71,.40);
+}
+.grab-action-btn:hover { box-shadow: 0 6px 20px rgba(42,107,71,.55); transform: scale(1.03); }
+.grab-action-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+
+/* ── 分页 ── */
+.pagination { display: flex; justify-content: center; padding: 8px 0; }
 </style>

@@ -1,15 +1,17 @@
 <template>
   <div>
+    <h2 class="page-title">个人中心</h2>
+
     <!-- 账号信息 -->
-    <el-card style="margin-bottom:16px" v-loading="infoLoading">
+    <el-card style="margin-bottom:20px;border-radius:12px" v-loading="infoLoading">
       <template #header>
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span>账号信息</span>
+          <span class="card-section-title">账号信息</span>
           <el-tag :type="auditTagType" size="small">{{ auditTagText }}</el-tag>
         </div>
       </template>
       <div class="user-info-row">
-        <el-avatar :size="56" style="background:#C8D4C4;color:#4A6A44;font-size:22px;flex-shrink:0">
+        <el-avatar :size="60" style="background:#2A6B47;color:#fff;font-size:22px;font-weight:700;flex-shrink:0">
           {{ userInfo.nickname?.charAt(0) }}
         </el-avatar>
         <div class="user-meta">
@@ -21,8 +23,8 @@
     </el-card>
 
     <!-- 资质审核资料 -->
-    <el-card style="margin-bottom:16px" v-loading="profileLoading">
-      <template #header><span>资质审核资料</span></template>
+    <el-card style="margin-bottom:20px;border-radius:12px" v-loading="profileLoading">
+      <template #header><span class="card-section-title">资质审核资料</span></template>
 
       <el-alert v-if="profile.auditStatus === 3" type="error"
         :description="'审核未通过' + (profile.auditRemark ? '：' + profile.auditRemark : '') + '，请修改后重新提交'"
@@ -220,8 +222,8 @@
     </el-card>
 
     <!-- 修改密码 -->
-    <el-card>
-      <template #header><span>修改密码</span></template>
+    <el-card style="border-radius:12px">
+      <template #header><span class="card-section-title">修改密码</span></template>
       <el-form :model="pwdForm" :rules="pwdRules" ref="pwdFormRef"
                label-width="110px" style="max-width:460px">
         <el-form-item label="当前密码" prop="oldPassword">
@@ -459,59 +461,79 @@ onUnmounted(() => { if (mapInstance) { mapInstance.destroy(); mapInstance = null
 </script>
 
 <style scoped>
-.user-info-row { display: flex; align-items: center; gap: 16px; }
-.user-name  { font-size: 18px; font-weight: 700; color: #303133; }
-.user-phone { font-size: 14px; color: #606266; margin-top: 4px; }
-.user-time  { font-size: 12px; color: #909399; margin-top: 2px; }
+.page-title { font-size: 20px; font-weight: 700; color: #3A3734; margin: 0 0 20px; }
 
+.card-section-title {
+  font-size: 15px; font-weight: 700; color: #2A6B47;
+  padding-left: 10px;
+  border-left: 3px solid #2A6B47;
+  line-height: 1.2;
+}
+
+/* ── 账号信息块 ── */
+.user-info-row { display: flex; align-items: center; gap: 16px; }
+.user-name  { font-size: 20px; font-weight: 800; color: #1C3D2A; }
+.user-phone { font-size: 14px; color: #4B5563; margin-top: 4px; }
+.user-time  { font-size: 12px; color: #9CA3AF; margin-top: 2px; }
+
+/* ── 表单分区标题 ── */
 .form-section-title {
-  font-size: 14px; font-weight: 600; color: #374151;
-  border-left: 3px solid #059669; padding-left: 10px;
-  margin: 20px 0 14px;
+  font-size: 14px; font-weight: 700; color: #1C3D2A;
+  border-left: 4px solid #2A6B47; padding-left: 12px;
+  margin: 24px 0 14px;
+  background: #F0FDF4;
+  border-radius: 0 8px 8px 0;
+  padding-top: 6px; padding-bottom: 6px;
 }
 .form-section-title:first-of-type { margin-top: 0; }
-.tip { font-size: 12px; font-weight: 400; color: #9ca3af; }
+.tip { font-size: 12px; font-weight: 400; color: #9CA3AF; }
 
 .location-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
-.location-desc { font-size: 12px; color: #059669; margin-top: 6px; }
+.location-desc { font-size: 12px; color: #2A6B47; margin-top: 6px; font-weight: 500; }
 
 .map-wrap { width: 100%; }
-.map-container { width: 100%; height: 320px; border-radius: 8px; border: 1px solid #e5e7eb; }
-.map-tip { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+.map-container { width: 100%; height: 320px; border-radius: 10px; border: 1.5px solid #E0EBE0; }
+.map-tip { font-size: 12px; color: #9CA3AF; margin-top: 6px; }
 
 .tag-group { display: flex; flex-wrap: wrap; gap: 8px; }
-.tag-group :deep(.el-checkbox.is-bordered) { margin: 0; border-radius: 6px; }
+.tag-group :deep(.el-checkbox.is-bordered) { margin: 0; border-radius: 8px; }
+.tag-group :deep(.el-checkbox.is-bordered.is-checked) {
+  border-color: #2A6B47; color: #2A6B47;
+}
 
-/* 图片上传框 */
+/* ── 图片上传框 ── */
 :deep(.img-uploader .el-upload) {
-  border: 1px dashed #d1d5db;
-  border-radius: 8px;
+  border: 1.5px dashed #C8DDD0;
+  border-radius: 10px;
   cursor: pointer;
   width: 200px;
   height: 130px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color .2s;
+  transition: border-color .2s, background .2s;
   overflow: hidden;
 }
-:deep(.img-uploader .el-upload:hover) { border-color: #059669; }
+:deep(.img-uploader .el-upload:hover) {
+  border-color: #2A6B47;
+  background: #F0FDF4;
+}
 
 .img-placeholder { display: flex; flex-direction: column; align-items: center; }
-.img-hint { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+.img-hint { font-size: 12px; color: #9CA3AF; margin-top: 6px; }
 
 .img-preview-wrap {
   position: relative;
   width: 200px; height: 130px;
-  border-radius: 8px; overflow: hidden;
+  border-radius: 10px; overflow: hidden;
 }
 .img-preview { width: 100%; height: 100%; object-fit: cover; display: block; }
 .img-overlay {
   position: absolute; inset: 0;
-  background: rgba(0,0,0,.4); color: #fff; font-size: 13px;
+  background: rgba(0,0,0,.45); color: #fff; font-size: 13px;
   display: flex; align-items: center; justify-content: center;
   opacity: 0; transition: opacity .2s;
 }
 .img-preview-wrap:hover .img-overlay { opacity: 1; }
-.uploading-tip { font-size: 12px; color: #409eff; margin-top: 4px; }
+.uploading-tip { font-size: 12px; color: #2A6B47; margin-top: 4px; font-weight: 600; }
 </style>
