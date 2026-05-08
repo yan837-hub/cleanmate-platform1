@@ -259,10 +259,11 @@ function futureDate(days, hour) {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(hour)}:00:00`
 }
 
-// 每次点击重新生成，地址/坐标/面积/手机号全部随机
+// 每次点击重新生成，地址/坐标/面积随机，顾客取已注册账号
 function buildMockOrders() {
   const rand4 = () => String(Math.floor(Math.random() * 9000) + 1000)
-  const randPhone = () => '138' + String(Math.floor(Math.random() * 90000000) + 10000000)
+  const existingPhones = ['13800000002', '13800000003', '13800000004']
+  const randPhone = () => existingPhones[Math.floor(Math.random() * existingPhones.length)]
   const randArea = () => [60, 80, 90, 100, 120, 150][Math.floor(Math.random() * 6)]
   // 重庆主城区坐标范围随机偏移（±0.08°）
   const locations = [

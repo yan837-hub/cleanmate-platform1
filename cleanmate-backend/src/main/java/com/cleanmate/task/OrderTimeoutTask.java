@@ -4,6 +4,8 @@ import com.cleanmate.entity.ServiceOrder;
 import com.cleanmate.entity.User;
 import com.cleanmate.enums.NotificationType;
 import com.cleanmate.enums.OrderStatus;
+import com.cleanmate.entity.CleanerTimeLock;
+import com.cleanmate.service.ICleanerTimeLockService;
 import com.cleanmate.service.INotificationService;
 import com.cleanmate.service.IServiceOrderService;
 import com.cleanmate.service.IUserService;
@@ -26,6 +28,7 @@ public class OrderTimeoutTask {
     private final IServiceOrderService orderService;
     private final IUserService userService;
     private final INotificationService notificationService;
+    private final ICleanerTimeLockService cleanerTimeLockService;
 
     /**
      * 每10分钟检查一次：距预约时间约1小时的已接单订单，推送出行提醒给保洁员
@@ -34,6 +37,15 @@ public class OrderTimeoutTask {
     public void handleUpcomingReminder() {
         int count = orderService.sendUpcomingReminders();
         if (count > 0) log.info("[定时任务] 发送出行提醒 {} 条", count);
+    }
+
+    /**
+     * 每1分钟检查一次：dispatch_record.expire_at 已过且 status=1 的派单，订单自动退回待派单
+     */
+    @Scheduled(fixedDelay = 60 * 1000)
+    public void handleDispatchTimeout() {
+        int count = orderService.handleDispatchTimeout();
+        if (count > 0) log.warn("[定时任务] 派单超时退回 {} 单", count);
     }
 
     /**
@@ -57,6 +69,8 @@ public class OrderTimeoutTask {
                 order.setStatus(OrderStatus.CANCELLED.getCode());
                 order.setCancelReason("保洁员超时未签到，系统自动取消");
                 orderService.updateById(order);
+                cleanerTimeLockService.lambdaUpdate()
+                        .eq(CleanerTimeLock::getOrderId, order.getId()).remove();
                 orderService.logStatusChange(
                         order.getId(),
                         OrderStatus.ACCEPTED.getCode(),

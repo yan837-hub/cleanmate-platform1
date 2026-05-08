@@ -15,6 +15,7 @@ import com.cleanmate.service.*;
 import com.cleanmate.vo.dispatch.CandidateVO;
 import com.cleanmate.vo.order.OrderVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +26,6 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -35,6 +35,7 @@ import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, ServiceOrder>
@@ -57,7 +58,6 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
     private final ICleanerIncomeService cleanerIncomeService;
     private final ICleaningCompanyService cleaningCompanyService;
     private final IOperationLogService operationLogService;
-    private final PasswordEncoder passwordEncoder;
 
     private long getCommuteBufferMin() {
         SystemConfig cfg = systemConfigService.lambdaQuery()
@@ -171,7 +171,7 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         ServiceOrder order = this.getById(orderId);
         if (order == null) throw new BusinessException(ErrorCode.ORDER_NOT_EXIST);
         if (!order.getStatus().equals(OrderStatus.PENDING_DISPATCH.getCode()))
-            throw new BusinessException(ErrorCode.ORDER_STATUS_ERROR);
+            throw new BusinessException("手慢了！该订单已被其他保洁员接单");
 
         // 校验账号状态
         User cleanerUser = userService.getById(cleanerId);
@@ -373,7 +373,7 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
 
         // 通知顾客：服务已完成，请确认
         notify(order.getCustomerId(), NotificationType.SERVICE_COMPLETED.getCode(),
-                "服务已���成",
+                "服务已完成",
                 "您的订单 #" + order.getOrderNo() + " 保洁员已完工，请在48小时内确认并评价",
                 orderId);
     }
@@ -452,18 +452,7 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                     });
             if (pendingConflict) continue;
 
-            // 过滤③：距离过滤（双方都有坐标才计算；缺坐标则视为附近，不排除）
-            double homeDistKm;
-            if (orderHasLocation && cp.getLatitude() != null && cp.getLongitude() != null) {
-                homeDistKm = DistanceUtil.calculateKm(
-                        orderLat, orderLon,
-                        cp.getLatitude().doubleValue(), cp.getLongitude().doubleValue());
-                if (homeDistKm > maxDistKm) continue; // 超出配置距离上限则排除
-            } else {
-                homeDistKm = 0; // 坐标缺失时不排除，距离得分按最近处理
-            }
-
-            // ── 二、确定实际出发距离（优先用上一单位置）──────────────────
+            // ── 二、查上一单（过滤③和出发距离共用）──────────────────────
             // 取本单 appointTime 之前最近的已接单/服务中/待确认完成订单
             ServiceOrder prevOrder = this.lambdaQuery()
                     .eq(ServiceOrder::getCleanerId, cp.getUserId())
@@ -471,6 +460,27 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                     .lt(ServiceOrder::getAppointTime, order.getAppointTime())
                     .orderByDesc(ServiceOrder::getAppointTime)
                     .last("LIMIT 1").one();
+
+            // 过滤③：距离过滤——常驻位置或上一单位置任一在服务半径内则保留
+            double homeDistKm;
+            if (orderHasLocation && cp.getLatitude() != null && cp.getLongitude() != null) {
+                homeDistKm = DistanceUtil.calculateKm(
+                        orderLat, orderLon,
+                        cp.getLatitude().doubleValue(), cp.getLongitude().doubleValue());
+            } else {
+                homeDistKm = 0; // 坐标缺失时不排除，距离得分按最近处理
+            }
+
+            if (homeDistKm > maxDistKm) {
+                // 常驻位置超出半径，再看上一单位置是否在范围内
+                boolean prevInRange = prevOrder != null
+                        && prevOrder.getLatitude() != null && prevOrder.getLongitude() != null
+                        && orderHasLocation
+                        && DistanceUtil.calculateKm(orderLat, orderLon,
+                                prevOrder.getLatitude().doubleValue(),
+                                prevOrder.getLongitude().doubleValue()) <= maxDistKm;
+                if (!prevInRange) continue; // 两个位置都超出，才排除
+            }
 
             double distKm;
             boolean timeFeasible = true;
@@ -665,6 +675,50 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                 OrderStatus.PENDING_DISPATCH.getCode(), cleanerId, "保洁员拒绝接单，退回待派单");
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int handleDispatchTimeout() {
+        List<DispatchRecord> expired = dispatchRecordService.lambdaQuery()
+                .eq(DispatchRecord::getStatus, 1)
+                .lt(DispatchRecord::getExpireAt, LocalDateTime.now())
+                .list();
+        if (expired.isEmpty()) return 0;
+
+        int count = 0;
+        for (DispatchRecord dr : expired) {
+            try {
+                // 先标记 dispatch_record 为已超时
+                dispatchRecordService.lambdaUpdate()
+                        .eq(DispatchRecord::getId, dr.getId())
+                        .set(DispatchRecord::getStatus, 4)
+                        .set(DispatchRecord::getRespondAt, LocalDateTime.now())
+                        .update();
+
+                ServiceOrder order = this.getById(dr.getOrderId());
+                if (order == null || !order.getStatus().equals(OrderStatus.DISPATCHED_PENDING_CONFIRM.getCode())) {
+                    continue;
+                }
+
+                // 订单退回待派单，清除 cleanerId
+                this.lambdaUpdate()
+                        .eq(ServiceOrder::getId, order.getId())
+                        .set(ServiceOrder::getCleanerId, null)
+                        .set(ServiceOrder::getStatus, OrderStatus.PENDING_DISPATCH.getCode())
+                        .update();
+
+                logStatusChange(order.getId(),
+                        OrderStatus.DISPATCHED_PENDING_CONFIRM.getCode(),
+                        OrderStatus.PENDING_DISPATCH.getCode(),
+                        null,
+                        "保洁员 " + dr.getCleanerId() + " 超时未确认（截止 " + dr.getExpireAt() + "），自动退回待派单");
+                count++;
+            } catch (Exception e) {
+                log.error("[定时任务] 处理派单超时记录 {} 失败", dr.getId(), e);
+            }
+        }
+        return count;
+    }
+
     // ==================== 私有方法 ====================
 
     private BigDecimal computeActualFee(ServiceType serviceType, Integer durationMin, BigDecimal area) {
@@ -796,7 +850,9 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         // 投诉状态（status=7 时填充；结案后订单变为 status=6，也加载以便前端显示退款信息）
         if (order.getStatus() == 7 || order.getStatus() == 6) {
             Complaint complaint = complaintService.lambdaQuery()
-                    .eq(Complaint::getOrderId, order.getId()).one();
+                    .eq(Complaint::getOrderId, order.getId())
+                    .orderByDesc(Complaint::getId)
+                    .last("LIMIT 1").one();
             if (complaint != null) {
                 vo.setComplaintStatus(complaint.getStatus());
                 vo.setComplaintResult(complaint.getResult());
@@ -817,6 +873,12 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                 ? new BigDecimal(depositCfg.getConfigValue())
                 : new BigDecimal("0.30");
         vo.setDepositRate(depositRate);
+
+        // 是否曾发生派单超时退回
+        vo.setHadDispatchTimeout(dispatchRecordService.lambdaQuery()
+                .eq(DispatchRecord::getOrderId, order.getId())
+                .eq(DispatchRecord::getStatus, 4)
+                .exists());
 
         return vo;
     }
@@ -877,7 +939,8 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         List<CleanerProfile> allCleaners = cleanerProfileService.lambdaQuery()
                 .eq(CleanerProfile::getAuditStatus, 1).list();
 
-        List<CandidateEntry> entries = new ArrayList<>();
+        List<CandidateEntry> withinRange  = new ArrayList<>();
+        List<CandidateEntry> outsideRange = new ArrayList<>();
 
         for (CleanerProfile cp : allCleaners) {
             // 过滤①：账号状态
@@ -900,12 +963,13 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                     });
             if (pendingConflict) continue;
 
-            // 过滤③：距离（>30km排除）
+            // 距离计算：>30km 标记为兜底候选，不直接排除（30km内无人时作为备选展示给管理员）
             double homeDistKm = 0;
+            boolean beyondRange = false;
             if (orderHasLoc && cp.getLatitude() != null && cp.getLongitude() != null) {
                 homeDistKm = DistanceUtil.calculateKm(orderLat, orderLon,
                         cp.getLatitude().doubleValue(), cp.getLongitude().doubleValue());
-                if (homeDistKm > 30.0) continue;
+                beyondRange = homeDistKm > 30.0;
             }
 
             // 确定出发距离和时间可行性
@@ -968,10 +1032,16 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
             vo.setTimeFeasible(timeFeasible);
             vo.setScheduleStatus(timeFeasible ? "有档期" : "时间紧张");
 
-            entries.add(new CandidateEntry(vo, totalScore));
+            // 超范围以实际出发距离（distKm）为准：有上一单用上一单距离，无则用常驻距离
+            boolean effectiveBeyond = distKm > 30.0;
+            vo.setDistanceFallback(effectiveBeyond);
+            if (effectiveBeyond) outsideRange.add(new CandidateEntry(vo, totalScore));
+            else                 withinRange.add(new CandidateEntry(vo, totalScore));
         }
 
-        return entries.stream()
+        // 30km内有候选时返回正常列表，否则返回所有档期可用的兜底候选
+        List<CandidateEntry> result = withinRange.isEmpty() ? outsideRange : withinRange;
+        return result.stream()
                 .sorted(Comparator.comparingDouble((CandidateEntry e) -> e.score).reversed())
                 .map(e -> e.vo)
                 .collect(Collectors.toList());
@@ -1061,21 +1131,15 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                 .last("LIMIT 1").one();
         if (serviceType == null) throw new BusinessException("服务类型不存在");
 
-        // 2. 查找或创建顾客
+        // 2. 查找顾客
         User customer = userService.lambdaQuery()
                 .eq(User::getPhone, dto.getCustomerPhone()).one();
         if (customer == null) {
-            customer = new User();
-            customer.setPhone(dto.getCustomerPhone());
-            customer.setNickname("外部用户_" + dto.getCustomerPhone().substring(dto.getCustomerPhone().length() - 4));
-            customer.setPassword(passwordEncoder.encode("jd_tmp_123456"));
-            customer.setRole(1);
-            customer.setStatus(1);
-            userService.save(customer);
+            throw new BusinessException("顾客手机号未注册，请先让顾客完成注册");
         }
 
-        // 3. 计算预估费用（按小时计价时用 minDuration 兜底）
-        Integer planDuration = serviceType.getPriceMode() == 1 ? serviceType.getMinDuration() : null;
+        // 3. 计算预估费用；所有计价模式均写入 planDuration 供签到窗口和档期校验使用
+        Integer planDuration = serviceType.getMinDuration() != null ? serviceType.getMinDuration() : 120;
         BigDecimal estimateFee = calculateFee(serviceType, planDuration, dto.getHouseArea());
 
         // 4. 构建 remark（携带来源平台信息）

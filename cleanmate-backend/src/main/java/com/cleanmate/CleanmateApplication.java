@@ -15,7 +15,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @MapperScan("com.cleanmate.mapper")
 @EnableScheduling
 public class CleanmateApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(CleanmateApplication.class, args);
     }

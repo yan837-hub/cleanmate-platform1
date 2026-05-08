@@ -36,4 +36,7 @@ public class CandidateVO {
 
     /** "有档期" / "时间紧张" */
     private String scheduleStatus;
+
+    /** 是否为超范围兜底候选（30km内无人时才出现，距离仅供参考） */
+    private Boolean distanceFallback;
 }

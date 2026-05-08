@@ -128,7 +128,9 @@
                 {{ cell.day }}
               </div>
               <div class="cell-marks">
-                <span v-if="cell.hasOverride" class="mark mark-override" :title="cell.overrideLabel">调</span>
+                <span v-if="cell.hasOverride" class="mark mark-override">
+                  {{ cell.overrideLabel.startsWith('全天') ? '休' : cell.overrideLabel.replace('可接单 ', '') }}
+                </span>
                 <template v-if="cell.lockSlots.length">
                   <span
                     v-for="(slot, i) in cell.lockSlots.slice(0, 2)"

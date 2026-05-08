@@ -85,10 +85,11 @@ async function refreshUnread() {
           message: latest?.content ?? '点击查看消息中心',
           type: 'info',
           duration: 6000,
+          showClose: false,
           onClick: () => router.push('/cleaner/notifications'),
         })
       } catch {
-        ElNotification({ title: '您有新消息', message: '点击查看消息中心', type: 'info', duration: 6000 })
+        ElNotification({ title: '您有新消息', message: '点击查看消息中心', type: 'info', duration: 6000, showClose: false })
       }
       lastKnownCount = count
     } else {
@@ -203,6 +204,7 @@ function handleCommand(command) {
 :deep(.el-menu--horizontal > .el-menu-item) {
   color: #4A5568;
   font-size: 15px !important;
+  overflow: visible;
 }
 
 .el-main-wrap {

@@ -62,17 +62,20 @@ async function refreshUnread() {
     } else if (count > lastKnownCount) {
       try {
         const msgs = await getNotifications()
-        const latest = msgs.find(m => m.isRead === 0)
-        ElNotification({
-          title: latest?.title ?? '您有新消息',
-          message: latest?.content ?? '点击查看消息中心',
-          type: 'info',
-          duration: 6000,
-          onClick: () => router.push('/customer/notifications'),
-        })
-      } catch {
-        ElNotification({ title: '您有新消息', message: '点击查看消息中心', type: 'info', duration: 6000 })
-      }
+        // type=1（下单成功）前端已有居中提示，不重复弹窗
+        const latest = msgs.find(m => m.isRead === 0 && m.type !== 1)
+        if (latest) {
+          ElNotification({
+            title: latest.title,
+            message: latest.content,
+            type: 'info',
+            duration: 6000,
+            showClose: false,
+            onClick: () => router.push('/customer/notifications'),
+          })
+        }
+      } catch {}
+
       lastKnownCount = count
     } else {
       lastKnownCount = count

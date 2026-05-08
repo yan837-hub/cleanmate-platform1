@@ -60,7 +60,7 @@
           </template>
           <el-menu-item index="/admin/settings">系统参数配置</el-menu-item>
           <el-menu-item index="/admin/operation-logs">操作日志</el-menu-item>
-          <el-menu-item index="/admin/abnormal-checkins">异常管理</el-menu-item>
+          <el-menu-item index="/admin/abnormal-checkins">告警中心</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -69,19 +69,26 @@
     <el-container style="flex-direction: column; height: 100vh; overflow: hidden;">
       <el-header class="admin-header">
         <span class="page-title">{{ $route.meta.title || '管理后台' }}</span>
-        <el-dropdown @command="handleCommand">
-          <span class="user-info">
-            <el-avatar :size="30" style="background:#7BA888">
-              {{ userStore.userInfo?.nickname?.charAt(0) }}
-            </el-avatar>
-            <span>{{ userStore.userInfo?.nickname }}</span>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <div style="display:flex;align-items:center;gap:16px">
+          <el-badge :value="unreadAlertCount" :hidden="unreadAlertCount === 0" type="danger" :max="99">
+            <el-button circle text style="font-size:18px;color:#9CA3AF" @click="router.push('/admin/abnormal-checkins')">
+              <el-icon><Bell /></el-icon>
+            </el-button>
+          </el-badge>
+          <el-dropdown @command="handleCommand">
+            <span class="user-info">
+              <el-avatar :size="30" style="background:#7BA888">
+                {{ userStore.userInfo?.nickname?.charAt(0) }}
+              </el-avatar>
+              <span>{{ userStore.userInfo?.nickname }}</span>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </el-header>
 
       <el-main class="admin-main">
@@ -92,13 +99,34 @@
 </template>
 
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
-import { User, Tickets, Tools } from '@element-plus/icons-vue'
+import { User, Tickets, Tools, Bell } from '@element-plus/icons-vue'
+import { getAdminNotifications } from '@/api/admin'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+const unreadAlertCount = ref(0)
+let pollTimer = null
+
+async function loadUnreadAlertCount() {
+  try {
+    const data = await getAdminNotifications()
+    unreadAlertCount.value = (data || []).filter(
+      n => (n.type === 7 || n.type === 8 || n.type === 12) && n.isRead === 0
+    ).length
+  } catch { /* 静默失败，不影响主界面 */ }
+}
+
+onMounted(() => {
+  loadUnreadAlertCount()
+  pollTimer = setInterval(loadUnreadAlertCount, 30000)
+})
+
+onUnmounted(() => clearInterval(pollTimer))
 
 function handleCommand(command) {
   if (command === 'logout') {

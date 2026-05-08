@@ -4,14 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cleanmate.common.PageResult;
 import com.cleanmate.common.Result;
-import com.cleanmate.entity.CustomerProfile;
 import com.cleanmate.entity.ServiceOrder;
 import com.cleanmate.entity.User;
 import com.cleanmate.entity.OperationLog;
 import com.cleanmate.exception.BusinessException;
 import com.cleanmate.exception.ErrorCode;
 import com.cleanmate.mapper.ServiceOrderMapper;
-import com.cleanmate.service.ICustomerProfileService;
 import com.cleanmate.service.IOperationLogService;
 import com.cleanmate.service.IUserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,10 +30,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminCustomerController {
 
-    private final IUserService            userService;
-    private final ICustomerProfileService customerProfileService;
-    private final ServiceOrderMapper      orderMapper;
-    private final IOperationLogService    operationLogService;
+    private final IUserService         userService;
+    private final ServiceOrderMapper   orderMapper;
+    private final IOperationLogService operationLogService;
 
     /** 顾客列表（分页，支持 status 筛选 / keyword 搜索手机号或昵称） */
     @GetMapping
@@ -56,13 +53,6 @@ public class AdminCustomerController {
         Page<User> page = query.page(new Page<>(current, size));
         List<User> users = page.getRecords();
 
-        // 批量查 customer_profile（realName）
-        List<Long> userIds = users.stream().map(User::getId).collect(Collectors.toList());
-        Map<Long, CustomerProfile> profileMap = userIds.isEmpty() ? Map.of()
-                : customerProfileService.lambdaQuery()
-                        .in(CustomerProfile::getUserId, userIds).list()
-                        .stream().collect(Collectors.toMap(CustomerProfile::getUserId, p -> p));
-
         List<Map<String, Object>> records = users.stream().map(u -> {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("id",        u.getId());
@@ -71,9 +61,6 @@ public class AdminCustomerController {
             row.put("avatarUrl", u.getAvatarUrl());
             row.put("status",    u.getStatus());
             row.put("createdAt", u.getCreatedAt());
-
-            CustomerProfile cp = profileMap.get(u.getId());
-            row.put("realName", cp != null ? cp.getRealName() : null);
 
             long cnt = orderMapper.selectCount(
                     new LambdaQueryWrapper<ServiceOrder>()

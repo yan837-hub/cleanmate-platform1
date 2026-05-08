@@ -35,9 +35,12 @@
           </div>
           <div class="card-bottom">
             <span class="fee">¥{{ order.estimateFee }}</span>
-            <el-tag :type="order.status === 1 ? 'warning' : 'primary'" size="small">
-              {{ order.status === 1 ? '待派单' : '已派待确认' }}
-            </el-tag>
+            <div style="display:flex;gap:4px;align-items:center">
+              <el-tag v-if="order.hadDispatchTimeout" type="danger" size="small" effect="light">超时退回</el-tag>
+              <el-tag :type="order.status === 1 ? 'warning' : 'primary'" size="small">
+                {{ order.status === 1 ? '待派单' : '已派待确认' }}
+              </el-tag>
+            </div>
           </div>
         </div>
       </el-scrollbar>
@@ -67,6 +70,7 @@
         <div class="order-summary">
           <div class="summary-header">
             <span class="summary-title">{{ selectedOrder.serviceTypeName }}</span>
+            <el-tag v-if="selectedOrder.hadDispatchTimeout" type="danger" size="small" effect="light">超时退回</el-tag>
             <el-tag :type="selectedOrder.status === 1 ? 'warning' : 'primary'" size="small">
               {{ selectedOrder.status === 1 ? '待派单' : '已派待确认' }}
             </el-tag>
@@ -104,7 +108,7 @@
           </div>
           <el-empty
             v-else-if="candidates.length === 0"
-            description="暂无合适保洁员，可尝试调整预约时间"
+            description="该时段无空闲保洁员，可尝试调整预约时间"
             :image-size="80"
           />
           <div v-for="c in candidates" :key="c.userId" class="cleaner-card">
@@ -124,6 +128,13 @@
                     effect="light"
                     style="margin-left:4px"
                   >{{ c.scheduleStatus }}</el-tag>
+                  <el-tag
+                    v-if="c.distanceFallback"
+                    size="small"
+                    type="danger"
+                    effect="light"
+                    style="margin-left:4px"
+                  >超范围</el-tag>
                 </div>
                 <div class="cleaner-meta">
                   <span class="meta-item"><el-icon><Star /></el-icon> {{ c.avgScore != null ? Number(c.avgScore).toFixed(1) : '-' }}</span>
@@ -257,7 +268,8 @@ async function doAutoDispatch() {
   try {
     const msg = await autoDispatch(selectedOrder.value.id)
     if (msg && msg.startsWith('暂无')) {
-      ElMessage.warning(msg)
+      ElMessage.warning('30km内暂无合适保洁员，已为您展示全部空闲保洁员，请手动指派')
+      await loadCandidates()
     } else {
       ElMessage.success(msg || '派单成功')
       await loadOrders()

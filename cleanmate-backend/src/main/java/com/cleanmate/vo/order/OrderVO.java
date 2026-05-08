@@ -69,4 +69,7 @@ public class OrderVO {
 
     /** 当前系统定金比例（从 system_config.deposit_rate 读取，供前端展示用） */
     private BigDecimal depositRate;
+
+    /** 是否曾发生派单超时退回（dispatch_record 存在 status=4 的记录） */
+    private Boolean hadDispatchTimeout;
 }

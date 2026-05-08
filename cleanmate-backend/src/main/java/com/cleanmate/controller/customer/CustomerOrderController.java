@@ -207,7 +207,8 @@ public class CustomerOrderController {
         boolean canReview = order.getStatus().equals(OrderStatus.COMPLETED.getCode());
         if (!canReview && order.getStatus().equals(OrderStatus.AFTER_SALE.getCode())) {
             Complaint complaint = complaintService.lambdaQuery()
-                    .eq(Complaint::getOrderId, orderId).one();
+                    .eq(Complaint::getOrderId, orderId)
+                    .orderByDesc(Complaint::getId).last("LIMIT 1").one();
             canReview = complaint != null
                     && complaint.getStatus() == 3   // 已结案
                     && complaint.getResult() != null
@@ -340,7 +341,8 @@ public class CustomerOrderController {
             throw new BusinessException(ErrorCode.ORDER_NOT_BELONG_TO_USER);
         }
         Complaint complaint = complaintService.lambdaQuery()
-                .eq(Complaint::getOrderId, orderId).one();
+                .eq(Complaint::getOrderId, orderId)
+                .orderByDesc(Complaint::getId).last("LIMIT 1").one();
         return Result.success(complaint);
     }
 

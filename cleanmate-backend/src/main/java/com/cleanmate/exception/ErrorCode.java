@@ -19,7 +19,7 @@ public enum ErrorCode {
     // 用户相关
     USER_NOT_EXIST(1001, "用户不存在"),
     USER_ALREADY_EXIST(1002, "手机号已注册"),
-    PASSWORD_ERROR(1003, "密码错误"),
+    PASSWORD_ERROR(1003, "账号或密码错误"),
     ACCOUNT_DISABLED(1004, "账号已停用"),
     ACCOUNT_PENDING(1005, "账号待审核"),
 

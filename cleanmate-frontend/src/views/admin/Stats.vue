@@ -1,20 +1,18 @@
 <template>
   <div class="stats-page">
-    <!-- 时间筛选 -->
-    <el-card style="margin-bottom:16px">
-      <el-form inline>
-        <el-form-item label="统计周期">
-          <el-radio-group v-model="period" @change="loadAll">
-            <el-radio-button value="7">近7天</el-radio-button>
-            <el-radio-button value="30">近30天</el-radio-button>
-            <el-radio-button value="90">近90天</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item>
-          <el-button :loading="loading" @click="loadAll">刷新</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+
+    <!-- 筛选栏 -->
+    <div class="filter-bar">
+      <div class="filter-left">
+        <span class="filter-label">统计周期</span>
+        <el-radio-group v-model="period" @change="loadAll">
+          <el-radio-button value="7">近7天</el-radio-button>
+          <el-radio-button value="30">近30天</el-radio-button>
+          <el-radio-button value="90">近90天</el-radio-button>
+        </el-radio-group>
+      </div>
+      <el-button :loading="loading" @click="loadAll" size="small">刷新</el-button>
+    </div>
 
     <!-- 核心指标卡 -->
     <el-row :gutter="16" style="margin-bottom:20px">
@@ -25,80 +23,53 @@
             <el-icon :size="18" :color="m.color"><component :is="m.icon" /></el-icon>
           </div>
           <div class="mc-value" :style="{ color: m.color }">{{ m.value }}</div>
-          <div class="mc-sub" v-if="m.delta !== null">较上周期
-            <span :class="m.delta >= 0 ? 'up' : 'down'">
-              {{ m.delta >= 0 ? '↑' : '↓' }}{{ Math.abs(m.delta) }}%
-            </span>
-          </div>
-          <div class="mc-sub" v-else>当前周期数据</div>
+          <div class="mc-sub">当前周期数据</div>
         </div>
       </el-col>
     </el-row>
 
-    <el-row :gutter="16">
-      <!-- 订单趋势表格 -->
-      <el-col :span="14">
+    <!-- 第一行：订单趋势柱线图 + 服务类型环图 -->
+    <el-row :gutter="16" style="margin-bottom:16px">
+      <el-col :span="15">
         <el-card>
           <template #header>
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span class="sec-title">订单趋势明细</span>
+            <div class="chart-header">
+              <span class="sec-title">订单趋势</span>
               <el-tag type="info" size="small">近{{ period }}天</el-tag>
             </div>
           </template>
-          <el-table :data="trendRows" v-loading="loading" size="small" max-height="360">
-            <el-table-column label="日期" prop="date" width="105" />
-            <el-table-column label="新增" prop="created" width="70" align="right" />
-            <el-table-column label="完成" prop="completed" width="70" align="right">
-              <template #default="{ row }">
-                <span style="color:#16a34a">{{ row.completed }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="取消" prop="cancelled" width="70" align="right">
-              <template #default="{ row }">
-                <span style="color:#ef4444">{{ row.cancelled }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="完成率" align="right">
-              <template #default="{ row }">
-                <el-progress
-                  :percentage="row.created ? Math.round(row.completed / row.created * 100) : 0"
-                  :stroke-width="8" :show-text="false" style="min-width:80px" />
-                <span style="font-size:12px;color:#888;margin-left:6px">
-                  {{ row.created ? Math.round(row.completed / row.created * 100) : 0 }}%
-                </span>
-              </template>
-            </el-table-column>
-            <el-table-column label="收入(¥)" prop="income" width="90" align="right">
-              <template #default="{ row }">
-                <span style="font-weight:600">{{ row.income }}</span>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div class="trend-total">
-            合计：新增 <b>{{ totalCreated }}</b> 单 &nbsp;|&nbsp;
-            完成 <b>{{ totalCompleted }}</b> 单 &nbsp;|&nbsp;
-            收入 <b>¥{{ totalIncome }}</b>
-          </div>
+          <div ref="trendChartRef" style="height:280px" />
+        </el-card>
+      </el-col>
+      <el-col :span="9">
+        <el-card>
+          <template #header>
+            <span class="sec-title">服务类型分布（近30天）</span>
+          </template>
+          <div ref="pieChartRef" style="height:280px" />
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 第二行：平台收入趋势 + 投诉处理统计 -->
+    <el-row :gutter="16" style="align-items:stretch">
+      <el-col :span="15" style="display:flex;flex-direction:column">
+        <el-card class="revenue-card">
+          <template #header>
+            <div class="chart-header">
+              <span class="sec-title">平台收入趋势</span>
+              <el-tag type="info" size="small">近{{ period }}天</el-tag>
+            </div>
+          </template>
+          <div ref="revenueChartRef" class="revenue-chart" />
         </el-card>
       </el-col>
 
-      <!-- 服务类型分布 -->
-      <el-col :span="10">
-        <el-card style="margin-bottom:16px">
-          <template #header><span class="sec-title">服务类型分布</span></template>
-          <div v-for="item in serviceStats" :key="item.label" class="svc-row">
-            <span class="svc-label">{{ item.label }}</span>
-            <el-progress
-              :percentage="item.pct" :stroke-width="10"
-              :color="item.color" :show-text="false" class="svc-bar" />
-            <span class="svc-pct">{{ item.pct }}%</span>
-            <span class="svc-count">{{ item.count }}单</span>
-          </div>
-        </el-card>
-
+      <el-col :span="9">
         <el-card>
           <template #header><span class="sec-title">投诉处理统计</span></template>
-          <el-row :gutter="8">
+
+          <el-row :gutter="8" style="margin-bottom:16px">
             <el-col :span="8" v-for="c in complaintStats" :key="c.label">
               <div class="complaint-mini" :style="{ background: c.bg }">
                 <div class="cm-num" :style="{ color: c.color }">{{ c.value }}</div>
@@ -106,20 +77,29 @@
               </div>
             </el-col>
           </el-row>
-          <div style="margin-top:12px">
-            <div class="rate-row">
-              <span>结案率</span>
-              <el-progress :percentage="closeRate" :stroke-width="10" status="success" />
+
+          <div class="rate-row">
+            <span style="white-space:nowrap">结案率</span>
+            <el-progress :percentage="closeRate" :stroke-width="10" status="success" />
+          </div>
+
+          <div class="complaint-rate-box">
+            <div class="cr-label">平台投诉率（期内）</div>
+            <div class="cr-value" :class="overallComplaintRate > 10 ? 'cr-bad' : 'cr-ok'">
+              {{ overallComplaintRate }}%
             </div>
+            <div class="cr-sub">投诉总数 / 订单总数 × 100</div>
           </div>
         </el-card>
       </el-col>
     </el-row>
+
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import * as echarts from 'echarts'
 import { getOrderTrend, getOverview, getServiceTypeStats } from '@/api/admin'
 
 const period  = ref('7')
@@ -127,30 +107,10 @@ const loading = ref(false)
 
 // ── 核心指标 ──
 const metrics = ref([
-  { label: '总订单数',   value: 0,    icon: 'Document',    color: '#5b21b6', delta: null },
-  { label: '完成率',     value: '0%', icon: 'CircleCheck', color: '#16a34a', delta: null },
-  { label: '总收入(¥)',  value: '¥0', icon: 'Money',       color: '#d97706', delta: null },
-  { label: '在线保洁员', value: 0,    icon: 'User',        color: '#2563eb', delta: null },
-])
-
-// ── 趋势表格 ──
-const trendRows = ref([])
-
-const totalCreated   = computed(() => trendRows.value.reduce((s, r) => s + (Number(r.created)   || 0), 0))
-const totalCompleted = computed(() => trendRows.value.reduce((s, r) => s + (Number(r.completed) || 0), 0))
-const totalIncome    = computed(() => {
-  const sum = trendRows.value.reduce((s, r) => s + (Number(r.income) || 0), 0)
-  return sum.toFixed(2).replace(/\.00$/, '')
-})
-
-// ── 服务类型 ──
-const serviceStats = ref([
-  { label: '日常保洁', pct: 0, count: 0, color: '#5b21b6' },
-  { label: '深度保洁', pct: 0, count: 0, color: '#3b82f6' },
-  { label: '开荒保洁', pct: 0, count: 0, color: '#22c55e' },
-  { label: '家电清洗', pct: 0, count: 0, color: '#f59e0b' },
-  { label: '玻璃清洗', pct: 0, count: 0, color: '#ef4444' },
-  { label: '其他',     pct: 0, count: 0, color: '#9ca3af' },
+  { label: '总订单数',   value: 0,    icon: 'Document',    color: '#5b21b6' },
+  { label: '完成率',     value: '0%', icon: 'CircleCheck', color: '#16a34a' },
+  { label: '总收入(¥)',  value: '¥0', icon: 'Money',       color: '#d97706' },
+  { label: '在线保洁员', value: 0,    icon: 'User',        color: '#2563eb' },
 ])
 
 // ── 投诉统计 ──
@@ -159,11 +119,201 @@ const complaintStats = ref([
   { label: '处理中', value: 0, color: '#f59e0b', bg: '#fffbeb' },
   { label: '已结案', value: 0, color: '#16a34a', bg: '#f0fdf4' },
 ])
+
 const closeRate = computed(() => {
   const total = complaintStats.value.reduce((s, c) => s + c.value, 0)
   return total ? Math.round(complaintStats.value[2].value / total * 100) : 0
 })
 
+const totalCreated = ref(0)
+const overallComplaintRate = computed(() => {
+  const total = complaintStats.value.reduce((s, c) => s + c.value, 0)
+  return totalCreated.value > 0
+    ? (total / totalCreated.value * 100).toFixed(1)
+    : '0.0'
+})
+
+// ── ECharts 实例 ──
+const trendChartRef   = ref(null)
+const pieChartRef     = ref(null)
+const revenueChartRef = ref(null)
+let trendChart   = null
+let pieChart     = null
+let revenueChart = null
+
+const PIE_COLORS = [
+  '#7c3aed','#60a5fa','#34d399','#fbbf24','#f87171',
+  '#22d3ee','#f472b6','#818cf8','#fb923c','#a3e635',
+]
+
+function drawTrend(rows) {
+  if (!trendChart || !rows?.length) return
+  const dates     = rows.map(r => r.date)
+  const newOrders = rows.map(r => r.newOrders       ?? 0)
+  const completed = rows.map(r => r.completedOrders  ?? 0)
+  const cancelled = rows.map(r => r.cancelledOrders  ?? 0)
+
+  trendChart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: '#fff', borderColor: '#f0f0eb',
+      textStyle: { color: '#4A4A4A' },
+    },
+    legend: {
+      data: ['新增订单', '取消订单', '完成订单'],
+      top: 0, right: 0,
+      textStyle: { color: '#9CA3AF', fontSize: 12 },
+    },
+    grid: { top: 40, left: 48, right: 16, bottom: 30 },
+    xAxis: {
+      type: 'category', data: dates,
+      axisLine: { lineStyle: { color: '#F0F0EB' } },
+      axisLabel: { color: '#9CA3AF', fontSize: 11 },
+    },
+    yAxis: {
+      type: 'value', minInterval: 1,
+      splitLine: { lineStyle: { color: '#F0F0EB' } },
+      axisLabel: { color: '#9CA3AF', fontSize: 11 },
+    },
+    series: [
+      {
+        name: '新增订单', type: 'bar', data: newOrders,
+        barMaxWidth: 24,
+        itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+      },
+      {
+        name: '取消订单', type: 'bar', data: cancelled,
+        barMaxWidth: 24,
+        itemStyle: { color: '#fca5a5', borderRadius: [4, 4, 0, 0] },
+      },
+      {
+        name: '完成订单', type: 'line', data: completed,
+        smooth: true, symbol: 'circle', symbolSize: 6,
+        lineStyle: { color: '#10b981', width: 2 },
+        itemStyle: { color: '#10b981' },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(16,185,129,.18)' },
+              { offset: 1, color: 'rgba(16,185,129,0)' },
+            ],
+          },
+        },
+      },
+    ],
+  })
+}
+
+function drawPie(data) {
+  if (!pieChart || !data?.length) return
+  const seriesData = data.map((item, i) => ({
+    name:  item.serviceTypeName,
+    value: item.count,
+    itemStyle: { color: PIE_COLORS[i % PIE_COLORS.length] },
+  }))
+
+  pieChart.setOption({
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c}单 ({d}%)',
+      backgroundColor: '#fff', borderColor: '#f0f0eb',
+      textStyle: { color: '#4A4A4A' },
+    },
+    legend: {
+      orient: 'vertical', right: 0, top: 'center',
+      textStyle: { fontSize: 11, color: '#9CA3AF' },
+    },
+    series: [{
+      type: 'pie',
+      radius: ['42%', '68%'],
+      center: ['38%', '50%'],
+      avoidLabelOverlap: true,
+      label: {
+        show: true,
+        position: 'outside',
+        formatter: '{d}%',
+        fontSize: 11,
+        color: '#606266',
+      },
+      labelLine: { show: true, length: 8, length2: 6 },
+      data: seriesData,
+    }],
+  })
+}
+
+function drawRevenue(rows) {
+  if (!revenueChart || !rows?.length) return
+  const dates    = rows.map(r => r.date)
+  const revenues = rows.map(r => Number(r.revenue ?? 0).toFixed(2))
+  const avgPrices = rows.map(r => {
+    const n = r.newOrders ?? 0
+    const v = Number(r.revenue ?? 0)
+    return n > 0 ? Number((v / n).toFixed(2)) : 0
+  })
+
+  revenueChart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: '#fff', borderColor: '#f0f0eb',
+      textStyle: { color: '#4A4A4A' },
+      formatter: (params) => {
+        const date = params[0].axisValue
+        const rev  = params.find(p => p.seriesName === '日收入')
+        const avg  = params.find(p => p.seriesName === '客单价')
+        return `${date}<br/>日收入：¥${rev?.value ?? 0}<br/>客单价：¥${avg?.value ?? 0}`
+      },
+    },
+    legend: {
+      data: ['日收入', '客单价'],
+      top: 0, right: 0,
+      textStyle: { color: '#9CA3AF', fontSize: 12 },
+    },
+    grid: { top: 40, left: 58, right: 58, bottom: 30 },
+    xAxis: {
+      type: 'category', data: dates,
+      axisLine: { lineStyle: { color: '#F0F0EB' } },
+      axisLabel: { color: '#9CA3AF', fontSize: 11 },
+    },
+    yAxis: [
+      {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#F0F0EB' } },
+        axisLabel: { color: '#9CA3AF', fontSize: 11, formatter: '¥{value}' },
+      },
+      {
+        type: 'value',
+        splitLine: { show: false },
+        axisLabel: { color: '#9CA3AF', fontSize: 11, formatter: '¥{value}' },
+      },
+    ],
+    series: [
+      {
+        name: '日收入', type: 'bar', yAxisIndex: 0, data: revenues,
+        barMaxWidth: 28,
+        itemStyle: { color: '#a78bfa', borderRadius: [4, 4, 0, 0] },
+        areaStyle: undefined,
+      },
+      {
+        name: '客单价', type: 'line', yAxisIndex: 1, data: avgPrices,
+        smooth: true, symbol: 'circle', symbolSize: 6,
+        lineStyle: { color: '#f59e0b', width: 2 },
+        itemStyle: { color: '#f59e0b' },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(245,158,11,.15)' },
+              { offset: 1, color: 'rgba(245,158,11,0)' },
+            ],
+          },
+        },
+      },
+    ],
+  })
+}
+
+// ── 数据加载 ──
 async function loadAll() {
   loading.value = true
   try {
@@ -173,47 +323,29 @@ async function loadAll() {
       getServiceTypeStats(),
     ])
 
-    // 趋势表格：把后端字段名映射到模板期望的字段名
-    trendRows.value = (trend ?? []).map(r => ({
-      date:      r.date,
-      created:   r.newOrders       ?? 0,
-      completed: r.completedOrders ?? 0,
-      cancelled: r.cancelledOrders ?? 0,
-      income:    r.revenue         ?? 0,
-    }))
+    const rows      = trend ?? []
+    const created   = rows.reduce((s, r) => s + (r.newOrders       ?? 0), 0)
+    const completed = rows.reduce((s, r) => s + (r.completedOrders  ?? 0), 0)
+    const income    = rows.reduce((s, r) => s + (Number(r.revenue)  ?? 0), 0)
+    const rate      = created > 0 ? Math.round(completed / created * 100) : 0
 
-    // 概览数据填入指标卡
+    metrics.value[0].value = created
+    metrics.value[1].value = rate + '%'
+    metrics.value[2].value = '¥' + income.toFixed(2).replace(/\.00$/, '')
+    metrics.value[3].value = ov?.activeCleaners ?? 0
+
+    totalCreated.value = created
+
     if (ov) {
-      const created   = totalCreated.value
-      const completed = totalCompleted.value
-      const rate      = created > 0 ? Math.round(completed / created * 100) : 0
-
-      metrics.value[0].value = created
-      metrics.value[1].value = rate + '%'
-      metrics.value[2].value = '¥' + totalIncome.value
-      metrics.value[3].value = ov.activeCleaners ?? 0
-
-      complaintStats.value[0].value = ov.pendingComplaints    ?? 0
-      complaintStats.value[1].value = ov.processingComplaints ?? 0
-      complaintStats.value[2].value = ov.closedComplaints     ?? 0
+      complaintStats.value[0].value = ov.pendingComplaints     ?? 0
+      complaintStats.value[1].value = ov.processingComplaints  ?? 0
+      complaintStats.value[2].value = ov.closedComplaints      ?? 0
     }
 
-    // 服务类型分布
-    if (svcData?.length) {
-      const colorMap = {
-        '日常保洁': '#5b21b6',
-        '深度保洁': '#3b82f6',
-        '开荒保洁': '#22c55e',
-        '家电清洗': '#f59e0b',
-        '玻璃清洗': '#ef4444',
-      }
-      serviceStats.value = svcData.map((item, i) => ({
-        label: item.serviceTypeName,
-        pct:   Math.round((item.percentage ?? 0) * 100),
-        count: item.count ?? 0,
-        color: colorMap[item.serviceTypeName] ?? ['#9ca3af', '#06b6d4', '#ec4899'][i % 3],
-      }))
-    }
+    drawTrend(rows)
+    drawPie(svcData ?? [])
+    drawRevenue(rows)
+
   } catch (e) {
     console.error('统计数据加载失败', e)
   } finally {
@@ -221,12 +353,53 @@ async function loadAll() {
   }
 }
 
-onMounted(loadAll)
+// ── 生命周期 ──
+let resizeOb = null
+
+onMounted(async () => {
+  await nextTick()
+  trendChart   = echarts.init(trendChartRef.value,   null, { renderer: 'canvas' })
+  pieChart     = echarts.init(pieChartRef.value,     null, { renderer: 'canvas' })
+  revenueChart = echarts.init(revenueChartRef.value, null, { renderer: 'canvas' })
+
+  resizeOb = new ResizeObserver(() => {
+    trendChart?.resize()
+    pieChart?.resize()
+    revenueChart?.resize()
+  })
+  resizeOb.observe(trendChartRef.value)
+  resizeOb.observe(pieChartRef.value)
+  resizeOb.observe(revenueChartRef.value)
+
+  await loadAll()
+})
+
+onUnmounted(() => {
+  resizeOb?.disconnect()
+  trendChart?.dispose()
+  pieChart?.dispose()
+  revenueChart?.dispose()
+})
 </script>
 
 <style scoped>
-.stats-page { max-width: 1200px; }
-.sec-title  { font-size: 15px; font-weight: 600; }
+.stats-page { max-width: 1400px; }
+.sec-title  { font-size: 14px; font-weight: 600; color: #4A4A4A; }
+.chart-header { display: flex; justify-content: space-between; align-items: center; }
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid #f0f0eb;
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(74,74,74,.05);
+}
+.filter-left  { display: flex; align-items: center; gap: 12px; }
+.filter-label { font-size: 13px; color: #606266; }
 
 .metric-card {
   background: #fff;
@@ -239,20 +412,39 @@ onMounted(loadAll)
 .mc-label { font-size: 13px; color: #909399; }
 .mc-value { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
 .mc-sub   { font-size: 12px; color: #aaa; }
-.up   { color: #16a34a; font-weight: 600; }
-.down { color: #ef4444; font-weight: 600; }
-
-.trend-total { margin-top: 10px; font-size: 13px; color: #606266; text-align: right; }
-
-.svc-row   { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-.svc-label { width: 70px; font-size: 13px; color: #333; flex-shrink: 0; }
-.svc-bar   { flex: 1; }
-.svc-pct   { width: 38px; text-align: right; font-size: 12px; color: #888; flex-shrink: 0; }
-.svc-count { width: 40px; text-align: right; font-size: 12px; color: #5b21b6; flex-shrink: 0; font-weight: 600; }
 
 .complaint-mini { border-radius: 8px; padding: 12px 0; text-align: center; }
-.cm-num   { font-size: 24px; font-weight: 700; }
+.cm-num   { font-size: 22px; font-weight: 700; }
 .cm-label { font-size: 12px; color: #666; margin-top: 4px; }
+
 .rate-row { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #606266; }
 .rate-row .el-progress { flex: 1; }
+
+.complaint-rate-box {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0eb;
+}
+.cr-label { font-size: 12px; color: #909399; margin-bottom: 4px; }
+.cr-value { font-size: 26px; font-weight: 700; }
+.cr-sub   { font-size: 11px; color: #bbb; margin-top: 4px; }
+.cr-ok  { color: #16a34a; }
+.cr-bad { color: #ef4444; }
+
+/* 收入卡撑满行高，图表填满卡片剩余空间 */
+.revenue-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.revenue-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 16px;
+}
+.revenue-chart {
+  flex: 1;
+  min-height: 200px;
+}
 </style>

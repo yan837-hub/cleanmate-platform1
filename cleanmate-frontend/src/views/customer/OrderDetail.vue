@@ -110,14 +110,14 @@
           <el-descriptions :column="3" border>
             <el-descriptions-item label="订单号" :span="2">{{ order.orderNo }}</el-descriptions-item>
             <el-descriptions-item label="服务类型">{{ order.serviceTypeName }}</el-descriptions-item>
-            <el-descriptions-item label="预约时间">{{ formatTime(order.appointTime) }}</el-descriptions-item>
+            <el-descriptions-item label="预约时间" :span="2">{{ formatTime(order.appointTime) }}</el-descriptions-item>
+            <el-descriptions-item label="下单时间">{{ formatTime(order.createdAt) }}</el-descriptions-item>
             <el-descriptions-item v-if="order.planDuration" label="计划时长">
               {{ order.planDuration / 60 }} 小时
             </el-descriptions-item>
             <el-descriptions-item v-if="order.houseArea" label="房屋面积">
               {{ order.houseArea }} ㎡
             </el-descriptions-item>
-            <el-descriptions-item label="下单时间">{{ formatTime(order.createdAt) }}</el-descriptions-item>
           </el-descriptions>
         </el-card>
 
@@ -179,6 +179,12 @@
             <el-button type="primary" style="margin-top:12px" @click="handlePayFull">
               支付全额 ¥{{ order.actualFee ?? order.estimateFee }}
             </el-button>
+          </div>
+
+          <!-- pay_status=1 且 status 尚未到完工阶段：展示已付定金，提示尾款待完工后结算 -->
+          <div v-else-if="order.payStatus === 1">
+            <el-tag type="success" style="margin-bottom:10px">已付定金 ¥{{ order.depositFee ?? depositPreview }} ✓</el-tag>
+            <div class="pay-hint">服务完成后支付尾款 ¥{{ tailFeePreview }}</div>
           </div>
 
           <!-- 其他状态（未生成费用 / 未到支付时机）-->
@@ -358,7 +364,7 @@
           <el-input v-model="complaintForm.reason" type="textarea" :rows="4"
             placeholder="请详细描述您遇到的问题，如服务质量、物品损坏等" />
         </el-form-item>
-        <el-form-item label="凭证图片">
+        <el-form-item label="凭证图片" required>
           <el-upload
             action="/api/common/upload"
             :headers="uploadHeaders"
@@ -373,7 +379,7 @@
               <span style="font-size:12px;margin-top:4px">上传凭证</span>
             </div>
           </el-upload>
-          <div style="font-size:12px;color:#909399;margin-top:4px">可上传服务问题、物品损坏等现场照片，最多5张</div>
+          <div style="font-size:12px;color:#909399;margin-top:4px">请上传服务问题、物品损坏等现场照片作为投诉凭证（必填，最多5张）</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -503,13 +509,10 @@ const showPayWarning = computed(() => {
 })
 
 
-// 已完成后7天内可投诉（且未投诉过）
+// 已完成且未投诉过则显示入口，时间窗口校验由后端负责
 const canComplaintAfterDone = computed(() => {
   if (!order.value || order.value.status !== 6 || existingComplaint.value) return false
-  if (!order.value.completedAt) return true
-  const completed = new Date(order.value.completedAt)
-  completed.setDate(completed.getDate() + 7)
-  return new Date() < completed
+  return true
 })
 
 // 是否可以报告未到场：状态=已接单(3) 且 当前时间超过预约时间+30分钟
@@ -595,6 +598,10 @@ function openComplaintDialog() {
 async function handleSubmitComplaint() {
   if (!complaintForm.value.reason.trim()) {
     ElMessage.warning('请填写投诉原因')
+    return
+  }
+  if (!complaintForm.value.imgs.length) {
+    ElMessage.warning('请至少上传一张投诉凭证图片')
     return
   }
   await ElMessageBox.confirm(

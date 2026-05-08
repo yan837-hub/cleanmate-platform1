@@ -28,7 +28,15 @@
         <div class="card-status-bar"></div>
         <div class="card-inner">
           <!-- 左：类型图标 -->
-          <div class="card-icon">{{ svcEmoji(order.serviceTypeName) }}</div>
+          <div class="card-icon">
+            <img
+              v-if="serviceTypeImgs[order.serviceTypeName] && !imgFailed[order.id]"
+              :src="serviceTypeImgs[order.serviceTypeName]"
+              class="card-icon-img"
+              @error="imgFailed[order.id] = true"
+            />
+            <span v-else>{{ svcEmoji(order.serviceTypeName) }}</span>
+          </div>
 
           <!-- 中：信息区 -->
           <div class="card-body">
@@ -103,6 +111,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, ShoppingBag, Clock, Timer, Location, ChatDotRound } from '@element-plus/icons-vue'
 import { getGrabPool, grabOrder } from '@/api/order'
+import { getServiceTypes } from '@/api/service'
 import { formatTime } from '@/utils/time'
 
 const list = ref([])
@@ -111,6 +120,8 @@ const currentPage = ref(1)
 const pageSize = 10
 const loading = ref(false)
 const grabbingId = ref(null)
+const serviceTypeImgs = ref({})
+const imgFailed = ref({})
 
 let timer = null
 
@@ -158,8 +169,18 @@ async function handleGrab(order) {
   }
 }
 
+async function loadServiceTypeImgs() {
+  try {
+    const types = await getServiceTypes()
+    types.forEach(t => {
+      if (t.coverImg) serviceTypeImgs.value[t.name] = t.coverImg
+    })
+  } catch {}
+}
+
 onMounted(() => {
   loadPool()
+  loadServiceTypeImgs()
   timer = setInterval(loadPool, 30000)
 })
 
@@ -242,6 +263,10 @@ onUnmounted(() => {
   background: #E6F4EE;
   display: flex; align-items: center; justify-content: center;
   font-size: 26px; flex-shrink: 0;
+  overflow: hidden;
+}
+.card-icon-img {
+  width: 100%; height: 100%; object-fit: cover;
 }
 
 /* 信息区 */

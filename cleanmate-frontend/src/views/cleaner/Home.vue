@@ -47,7 +47,7 @@
     <!-- 改期待处理横幅 -->
     <template v-if="pendingRescheduleOrders.length > 0">
       <div class="reschedule-banner">
-        <el-icon size="16" color="#fff"><Edit /></el-icon>
+        <el-icon size="16" color="#92400E"><Edit /></el-icon>
         <span>您有 {{ pendingRescheduleOrders.length }} 个改期申请待处理，请及时确认！</span>
         <el-button size="small" round style="margin-left:auto;flex-shrink:0" @click="$router.push('/cleaner/orders')">去处理 →</el-button>
       </div>
@@ -95,7 +95,15 @@
 
         <div class="pool-list">
           <div v-for="order in poolList" :key="order.id" class="pool-item">
-            <div class="pool-item-icon">{{ svcEmoji(order.serviceTypeName) }}</div>
+            <div class="pool-item-icon">
+              <img
+                v-if="serviceTypeImgs[order.serviceTypeName] && !imgFailed[order.id]"
+                :src="serviceTypeImgs[order.serviceTypeName]"
+                class="pool-item-icon-img"
+                @error="imgFailed[order.id] = true"
+              />
+              <span v-else>{{ svcEmoji(order.serviceTypeName) }}</span>
+            </div>
             <div class="pool-item-info">
               <div class="pool-item-top">
                 <span class="pool-fee">¥{{ order.estimateFee }}</span>
@@ -165,9 +173,10 @@
                   ↗ 去完工上报
                 </button>
               </div>
-              <div v-else class="tl-upcoming">
+              <div v-else class="tl-upcoming tl-upcoming--link" @click="$router.push(`/cleaner/orders/${order.id}`)">
                 <span class="tl-upcoming-title">{{ order.serviceTypeName }}</span>
                 <span class="tl-upcoming-addr">{{ order.addressSnapshot }}</span>
+                <span class="tl-upcoming-hint">查看详情 →</span>
               </div>
             </div>
           </div>
@@ -230,6 +239,7 @@ import { formatTime } from '@/utils/time'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Bell, Edit, Warning, CircleClose, OfficeBuilding, Refresh, Location, Clock, VideoPlay } from '@element-plus/icons-vue'
 import { getCleanerStats, getCleanerOrders, getGrabPool, grabOrder, acceptOrder, rejectOrder } from '@/api/order'
+import { getServiceTypes } from '@/api/service'
 import { getUserInfo } from '@/api/auth'
 
 const statsLoading = ref(false)
@@ -246,6 +256,8 @@ const poolList                = ref([])
 
 const accountAlert = ref(null)
 const canOperate   = ref(true)
+const serviceTypeImgs = ref({})
+const imgFailed       = ref({})
 
 const todayTimeline = computed(() => {
   return [...inServiceOrders.value, ...upcomingOrders.value]
@@ -376,12 +388,22 @@ async function doReject(orderId) {
   } finally { actionLoadingId.value = null }
 }
 
+async function loadServiceTypeImgs() {
+  try {
+    const types = await getServiceTypes()
+    types.forEach(t => {
+      if (t.coverImg) serviceTypeImgs.value[t.name] = t.coverImg
+    })
+  } catch {}
+}
+
 let timer = null
 onMounted(() => {
   loadAccountStatus()
   loadStats()
   loadTodayOrders()
   loadGrabPool()
+  loadServiceTypeImgs()
   timer = setInterval(() => { loadStats(); loadTodayOrders(); loadGrabPool() }, 30000)
 })
 onUnmounted(() => clearInterval(timer))
@@ -433,10 +455,10 @@ onUnmounted(() => clearInterval(timer))
 
 /* ── 改期横幅 ── */
 .reschedule-banner {
-  background: linear-gradient(90deg, #2563EB, #1D4ED8);
+  background: linear-gradient(90deg, #FCD34D, #FBBF24);
   border-radius: 12px; padding: 13px 22px;
   display: flex; align-items: center; gap: 10px;
-  color: #fff; font-size: 14px; font-weight: 600;
+  color: #78350F; font-size: 14px; font-weight: 600;
 }
 
 /* ── 统计卡片 ── */
@@ -567,6 +589,10 @@ onUnmounted(() => clearInterval(timer))
   width: 44px; height: 44px; border-radius: 10px;
   background: #E6F4EE; display: flex; align-items: center;
   justify-content: center; font-size: 20px; flex-shrink: 0;
+  overflow: hidden;
+}
+.pool-item-icon-img {
+  width: 100%; height: 100%; object-fit: cover;
 }
 .pool-item-info { flex: 1; min-width: 0; }
 .pool-item-top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
@@ -628,8 +654,12 @@ onUnmounted(() => clearInterval(timer))
 }
 .nav-btn:hover { background: #1B4D32; }
 .tl-upcoming { padding: 2px 0 0; }
+.tl-upcoming--link { cursor: pointer; border-radius: 8px; padding: 6px 8px; margin: -6px -8px; transition: background .15s; }
+.tl-upcoming--link:hover { background: #F0FDF4; }
 .tl-upcoming-title { font-size: 14px; font-weight: 500; color: #1C3D2A; display: block; margin-bottom: 3px; }
 .tl-upcoming-addr  { font-size: 12px; color: #6B7280; display: block; }
+.tl-upcoming-hint  { font-size: 11px; color: #2A6B47; display: block; margin-top: 5px; opacity: 0; transition: opacity .15s; }
+.tl-upcoming--link:hover .tl-upcoming-hint { opacity: 1; }
 
 /* ── 快捷操作区 ── */
 .quick-section {

@@ -55,6 +55,9 @@ public interface IServiceOrderService extends IService<ServiceOrder> {
     /** 获取订单的候选保洁员列表（复用自动派单筛选逻辑，按综合评分倒序） */
     List<CandidateVO> getDispatchCandidates(Long orderId);
 
+    /** 处理派单超时：expire_at 已过且 status=1 的 dispatch_record，订单退回待派单，返回处理数量 */
+    int handleDispatchTimeout();
+
     /**
      * 外部平台导入 / 管理员手动录入 通用创建订单
      * @param dto       入参

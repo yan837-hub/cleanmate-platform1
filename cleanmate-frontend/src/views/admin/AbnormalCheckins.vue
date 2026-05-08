@@ -20,20 +20,55 @@
         </template>
 
         <el-table :data="list" v-loading="loading" border style="width:100%">
-          <el-table-column prop="orderId" label="订单ID" width="90" />
-          <el-table-column prop="cleanerId" label="保洁员ID" width="90" />
-          <el-table-column prop="checkinTime" label="签到时间" width="160">
+          <!-- 订单号 -->
+          <el-table-column label="订单号" width="150">
+            <template #default="{ row }">
+              <span style="font-family:monospace;font-size:12px;color:#2563eb">{{ row.orderNo || '--' }}</span>
+            </template>
+          </el-table-column>
+          <!-- 服务类型 -->
+          <el-table-column label="服务类型" width="90">
+            <template #default="{ row }">
+              <el-tag size="small" type="info">{{ row.serviceTypeName || '--' }}</el-tag>
+            </template>
+          </el-table-column>
+          <!-- 保洁员 -->
+          <el-table-column label="保洁员" width="90">
+            <template #default="{ row }">
+              <span style="font-weight:600">{{ row.cleanerName || '--' }}</span>
+            </template>
+          </el-table-column>
+          <!-- 服务地址 -->
+          <el-table-column label="服务地址" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.addressSnapshot || '--' }}</template>
+          </el-table-column>
+          <!-- 预约时间 -->
+          <el-table-column label="预约时间" width="140">
+            <template #default="{ row }">{{ fmt(row.appointTime) }}</template>
+          </el-table-column>
+          <!-- 签到时间 -->
+          <el-table-column label="签到时间" width="140">
             <template #default="{ row }">{{ fmt(row.checkinTime) }}</template>
           </el-table-column>
-          <el-table-column prop="distanceM" label="偏差距离(m)" width="110" />
-          <el-table-column label="处理状态" width="100">
+          <!-- 偏差距离 -->
+          <el-table-column label="偏差距离" width="110" align="center">
+            <template #default="{ row }">
+              <span style="font-weight:600;color:#dc2626">
+                {{ row.distanceM >= 1000 ? (row.distanceM / 1000).toFixed(1) + ' km' : row.distanceM + ' m' }}
+              </span>
+            </template>
+          </el-table-column>
+          <!-- 处理状态 -->
+          <el-table-column label="状态" width="90" align="center">
             <template #default="{ row }">
               <el-tag :type="row.handledBy ? 'success' : 'danger'" size="small">
-                {{ row.handledBy ? '已处理' : '未处理' }}
+                {{ row.handledBy ? '已处理' : '待核查' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="handleRemark" label="处理备注" />
+          <!-- 处理备注 -->
+          <el-table-column prop="handleRemark" label="处理备注" min-width="120" show-overflow-tooltip />
+          <!-- 操作 -->
           <el-table-column label="操作" width="100" fixed="right">
             <template #default="{ row }">
               <el-button v-if="!row.handledBy" size="small" type="primary" @click="openHandle(row)">
@@ -201,7 +236,7 @@ async function loadNotifications() {
   notifLoading.value = true
   try {
     const data = await getAdminNotifications()
-    notifications.value = (data || []).filter(n => n.type === 8 || n.type === 12)
+    notifications.value = (data || []).filter(n => n.type === 7 || n.type === 8 || n.type === 12)
     notifPage.value = 1
   } catch {
     ElMessage.error('加载异常通知失败')
@@ -222,9 +257,15 @@ async function handleNotificationMarkRead(row) {
 }
 
 async function markAllNotificationsRead() {
-  for (const row of notifications.value.filter(n => n.isRead === 0)) {
-    await handleNotificationMarkRead(row)
+  const unread = notifications.value.filter(n => n.isRead === 0)
+  if (unread.length === 0) return
+  for (const row of unread) {
+    try {
+      await markAdminNotificationRead(row.id)
+      row.isRead = 1
+    } catch { /* 单条失败静默跳过 */ }
   }
+  ElMessage.success('已全部标记已读')
 }
 
 async function openOrderDrawer(orderId) {

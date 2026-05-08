@@ -1,7 +1,7 @@
 # CleanMate Platform — 系统逻辑全链路文档
 
 > **用途**：作为漏洞分析、代码审查、功能对接和答辩参考时的"路线图"。所有类名、字段名、表名均与代码/数据库保持一致。
-> **最后更新**：2026-04-22（更新：评价图片、投诉图片、服务照片、通知类型完整梳理）
+> **最后更新**：2026-05-09（新增 Q8：数据库无外键如何保障数据完整性）
 > **技术栈**：Spring Boot 3.2.5 + MyBatis-Plus 3.5.7 + MySQL 8.0 + Vue 3 + Vite + Pinia + Element Plus
 
 ---
@@ -17,7 +17,7 @@
 7. [服务过程照片系统](#七服务过程照片系统)
 8. [图片上传通用机制](#八图片上传通用机制)
 9. [重点难点防坑指南](#九重点难点防坑指南)
-10. [模拟答辩 Q&A](#十模拟答辩-qa)
+10. [模拟答辩 Q&A](#十模拟答辩-qa)（Q1~Q9）
 
 ---
 
@@ -822,4 +822,62 @@ avg_score 影响：保洁员的评分得分（派单权重的 30%），隐藏差
 
 ---
 
-*本文档基于 CleanMate 项目当前完整代码实现分析，最后更新：2026-04-22*
+---
+
+### Q8：数据库没有设置外键约束，数据完整性靠什么保障？
+
+> 本系统数据库未启用物理外键约束，这是在保洁平台业务场景下的主动设计选择，原因有三：
+>
+> **第一，性能考虑。** 外键约束在每次插入、更新时触发级联检查，在高并发派单场景下会产生额外的行锁竞争，影响系统响应速度。
+>
+> **第二，操作灵活性。** 业务上需要软删除、状态标记等操作，物理外键在这些场景下会引发不必要的约束冲突。
+>
+> **第三，可维护性。** 数据迁移、补录测试数据时，物理外键需要反复 DISABLE / ENABLE，增加维护成本。
+>
+> 数据完整性改由**三层应用层防护**保障：
+>
+> **第一层：Service 层写入前显式校验关联合法性。** 例如顾客下单前，后端先查询 `service_type` 确认服务类型存在且上架；保洁员注册时，先查询 `cleaning_company` 确认公司存在且状态正常；若关联数据不存在，直接抛出 `BusinessException`，不进行写入。
+>
+> ```java
+> // 下单前校验服务类型
+> ServiceType type = serviceTypeService.getById(dto.getServiceTypeId());
+> if (type == null || type.getStatus() != 1)
+>     throw new BusinessException("服务类型不存在或已下架");
+>
+> // 注册保洁员时校验公司
+> CleaningCompany company = companyService.getById(dto.getCompanyId());
+> if (company == null || company.getStatus() != 1)
+>     throw new BusinessException(400, "所选公司不存在或已停用");
+> ```
+>
+> **第二层：`@Transactional` 事务保证多表写入的原子性。** 注册时 `user` 表和 `cleaner_profile` 表同时写入，要么全部成功，要么全部回滚，不会出现用户建了但档案没建的半成功状态。
+>
+> **第三层：数据库唯一索引兜底。** 数据库层仍保留了 `uk_phone`（手机号唯一）、`uk_order_no`（订单号唯一）、`uk_order_id`（费用明细、评价等一单一条）等关键唯一索引，防止并发写入产生重复数据。
+>
+> 这也是目前互联网系统的主流做法，阿里巴巴《Java 开发手册》中明确建议不在数据库层使用外键约束，完整性由应用层保障。
+
+---
+
+### Q9：Service 层有些接口继承后什么都没写，是不是漏了？
+
+> 没有漏，这是 MyBatis-Plus 的标准设计。`IService` 继承后自带 20+ 个基础方法（`save`、`removeById`、`updateById`、`getById`、`list`、`page`、`lambdaQuery` 等），空接口意味着这张表的所有操作用继承来的方法就够了，Controller 可以直接链式调用，无需额外编码。
+>
+> 扫描本项目 22 个 Service，分三类：
+>
+> **第一类：纯继承，接口和实现均为空（如 `IUserService`、`ICleanerProfileService`）**
+> Controller 直接使用 `lambdaQuery()` 条件构造器完成增删改查，例如：
+> ```java
+> userService.lambdaQuery().eq(User::getRole, 1).eq(User::getStatus, status).page(new Page<>(current, size));
+> userService.updateById(user);
+> ```
+> 这些调用全部来自 `IService`，Service 文件本身不需要任何代码。
+>
+> **第二类：有少量自定义方法（如 `INotificationService`）**
+> 只声明了一个 `sendNotification()` 方法，实现里把几个字段组装成 `Notification` 对象后调用继承来的 `save()`，本质上仍是对基础方法的简单封装，避免在每个调用处重复拼装字段。
+>
+> **第三类：有完整业务逻辑（核心，如 `IServiceOrderService`、`ICleanerScheduleTemplateService`）**
+> `IServiceOrderService` 定义了 15 个自定义方法，覆盖下单、抢单、派单、打卡、完工上报、自动确认等完整订单流程；`ICleanerScheduleTemplateService` 封装了档期三层校验（特殊调整 override → 周模板 template → 时间锁 time_lock）。这些复杂业务逻辑全部集中在 Service 层，Controller 只负责接收参数和返回结果，体现了职责分离原则。
+
+---
+
+*本文档基于 CleanMate 项目当前完整代码实现分析，最后更新：2026-05-09*

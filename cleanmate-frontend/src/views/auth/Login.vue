@@ -131,6 +131,8 @@ async function handleLogin() {
     userStore.login(data)
     ElMessage.success('登录成功')
     router.push(getHomeRoute(data.role))
+  } catch (err) {
+    ElMessage.error(err.message || '账号或密码错误')
   } finally {
     loading.value = false
   }

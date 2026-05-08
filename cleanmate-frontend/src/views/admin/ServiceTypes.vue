@@ -152,6 +152,10 @@
             <el-input-number v-model="form.basePrice" :precision="2" :min="0" style="width:160px" />
             <span class="unit-label">元 / ㎡</span>
           </el-form-item>
+          <el-form-item label="预计时长">
+            <el-input-number v-model="form.minDuration" :min="30" :step="30" style="width:160px" />
+            <span class="unit-label">分钟（用于签到窗口计算）</span>
+          </el-form-item>
           <el-form-item label="面积阶梯">
             <div class="tier-list">
               <div v-for="(tier, idx) in form.priceTiers" :key="idx" class="tier-row">
@@ -174,6 +178,10 @@
           <el-form-item label="套餐价格" prop="basePrice">
             <el-input-number v-model="form.basePrice" :precision="2" :min="0" style="width:160px" />
             <span class="unit-label">元 / 次</span>
+          </el-form-item>
+          <el-form-item label="预计时长">
+            <el-input-number v-model="form.minDuration" :min="30" :step="30" style="width:160px" />
+            <span class="unit-label">分钟（用于签到窗口计算）</span>
           </el-form-item>
         </template>
 
@@ -315,7 +323,7 @@ async function handleSubmit() {
     const payload = {
       name: form.name, description: form.description, coverImg: form.coverImg,
       priceMode: form.priceMode, basePrice: form.basePrice,
-      minDuration: form.priceMode === 1 ? form.minDuration : null,
+      minDuration: form.minDuration,
       suggestWorkers: form.suggestWorkers, sortOrder: form.sortOrder,
       priceTiers: form.priceMode === 2 ? form.priceTiers : [],
     }

@@ -6,11 +6,13 @@ import com.cleanmate.common.PageResult;
 import com.cleanmate.common.Result;
 import com.cleanmate.dto.order.ExternalImportDTO;
 import com.cleanmate.entity.CheckinRecord;
+import com.cleanmate.entity.CleanerProfile;
 import com.cleanmate.entity.ServiceOrder;
 import com.cleanmate.enums.OrderStatus;
 import com.cleanmate.exception.BusinessException;
 import com.cleanmate.exception.ErrorCode;
 import com.cleanmate.service.ICheckinRecordService;
+import com.cleanmate.service.ICleanerProfileService;
 import com.cleanmate.service.IServiceOrderService;
 import com.cleanmate.vo.order.OrderVO;
 import lombok.Data;
@@ -18,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +35,7 @@ public class AdminOrderController {
 
     private final IServiceOrderService orderService;
     private final ICheckinRecordService checkinRecordService;
+    private final ICleanerProfileService cleanerProfileService;
 
     /**
      * 订单列表（支持按状态筛选、关键词搜索）
@@ -100,9 +105,11 @@ public class AdminOrderController {
 
     /**
      * 异常签到列表（is_abnormal=1，支持 handled 过滤：0=未处理 1=已处理）
+     * 返回字段：id, orderId, orderNo, serviceTypeName, addressSnapshot, appointTime,
+     *           cleanerId, cleanerName, checkinTime, distanceM, handledBy, handleRemark
      */
     @GetMapping("/checkins/abnormal")
-    public Result<List<CheckinRecord>> listAbnormalCheckins(
+    public Result<List<Map<String, Object>>> listAbnormalCheckins(
             @RequestParam(required = false) Integer handled) {
         var query = checkinRecordService.lambdaQuery()
                 .eq(CheckinRecord::getIsAbnormal, 1);
@@ -110,7 +117,45 @@ public class AdminOrderController {
             if (handled == 0) query.isNull(CheckinRecord::getHandledBy);
             else              query.isNotNull(CheckinRecord::getHandledBy);
         }
-        return Result.success(query.orderByDesc(CheckinRecord::getCheckinTime).list());
+        List<CheckinRecord> records = query.orderByDesc(CheckinRecord::getCheckinTime).list();
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (CheckinRecord r : records) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("id",          r.getId());
+            row.put("cleanerId",   r.getCleanerId());
+            row.put("checkinTime", r.getCheckinTime());
+            row.put("distanceM",   r.getDistanceM());
+            row.put("handledBy",   r.getHandledBy());
+            row.put("handleRemark", r.getHandleRemark());
+
+            // 订单信息
+            row.put("orderId", r.getOrderId());
+            ServiceOrder order = orderService.getById(r.getOrderId());
+            if (order != null) {
+                row.put("orderNo",         order.getOrderNo());
+                row.put("addressSnapshot", order.getAddressSnapshot());
+                row.put("appointTime",     order.getAppointTime());
+                // 服务类型名称通过 OrderVO 获取
+                try {
+                    var vo = orderService.getOrderVO(r.getOrderId());
+                    row.put("serviceTypeName", vo != null ? vo.getServiceTypeName() : "--");
+                } catch (Exception ignored) {
+                    row.put("serviceTypeName", "--");
+                }
+            } else {
+                row.put("orderNo", "--"); row.put("addressSnapshot", "--");
+                row.put("appointTime", null); row.put("serviceTypeName", "--");
+            }
+
+            // 保洁员姓名
+            CleanerProfile profile = cleanerProfileService.lambdaQuery()
+                    .eq(CleanerProfile::getUserId, r.getCleanerId()).one();
+            row.put("cleanerName", profile != null ? profile.getRealName() : "ID:" + r.getCleanerId());
+
+            result.add(row);
+        }
+        return Result.success(result);
     }
 
     /**

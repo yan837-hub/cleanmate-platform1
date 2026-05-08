@@ -121,7 +121,7 @@ DROP TABLE IF EXISTS `notification`;
 CREATE TABLE `notification` (
   `id`         bigint       NOT NULL AUTO_INCREMENT,
   `user_id`    bigint       NOT NULL COMMENT '接收用户user_id',
-  `type`       tinyint      NOT NULL COMMENT '通知类型',
+  `type`       tinyint      NOT NULL COMMENT '通知类型：1=下单成功 2=派单成功 3=保洁员上门 4=服务完成 5=新订单待接 6=审核结果 7=投诉通知 8=超时告警 9=出行提醒 10=改期申请 11=改期结果 12=异常签到告警',
   `title`      varchar(100) NOT NULL COMMENT '通知标题',
   `content`    varchar(500) NOT NULL COMMENT '通知内容',
   `ref_id`     bigint           NULL DEFAULT NULL COMMENT '关联业务ID',

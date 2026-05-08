@@ -1,9 +1,11 @@
 package com.cleanmate.controller.admin;
 
 import com.cleanmate.common.Result;
+import com.cleanmate.entity.CheckinRecord;
 import com.cleanmate.mapper.CleanerProfileMapper;
 import com.cleanmate.mapper.ComplaintMapper;
 import com.cleanmate.mapper.ServiceOrderMapper;
+import com.cleanmate.service.ICheckinRecordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +25,7 @@ public class AdminStatController {
     private final ServiceOrderMapper    orderMapper;
     private final CleanerProfileMapper  cleanerProfileMapper;
     private final ComplaintMapper       complaintMapper;
+    private final ICheckinRecordService checkinRecordService;
 
     // ─────────────────────────────────────────────────────────────
     // 1. 首页概览
@@ -44,6 +47,10 @@ public class AdminStatController {
         data.put("pendingComplaints",   complaintMapper.countPendingComplaints());
         data.put("processingComplaints",complaintMapper.countProcessingComplaints());
         data.put("closedComplaints",    complaintMapper.countClosedComplaints());
+        long pendingAbnormal = checkinRecordService.lambdaQuery()
+                .eq(CheckinRecord::getIsAbnormal, 1)
+                .isNull(CheckinRecord::getHandledBy).count();
+        data.put("pendingAbnormalCheckins", pendingAbnormal);
         return Result.success(data);
     }
 

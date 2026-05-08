@@ -21,7 +21,7 @@
 
     <!-- ② 待办快捷操作 -->
     <el-row :gutter="16" style="margin-top:16px">
-      <el-col :span="8" v-for="todo in todoCards" :key="todo.label">
+      <el-col :span="6" v-for="todo in todoCards" :key="todo.label">
         <div class="todo-card" :style="{ borderLeftColor: todo.color }">
           <div class="todo-left">
             <div class="todo-icon" :style="{ background: todo.bgColor }">
@@ -150,6 +150,7 @@ import {
   getStatsTrend,
   getServiceTypeStats,
   getCleanerRank,
+  getAdminNotifications,
 } from '@/api/admin'
 
 const router = useRouter()
@@ -163,13 +164,14 @@ const overviewCards = ref([
   { label: '进行中',       value: 0,    icon: 'Loading',     color: '#d97706', bgColor: '#fffbeb', route: '/admin/orders' },
   { label: '今日收入',     value: '¥0', icon: 'Money',       color: '#7c3aed', bgColor: '#f5f3ff', route: null },
   { label: '保洁员总数',   value: 0,    icon: 'User',        color: '#0891b2', bgColor: '#ecfeff', route: '/admin/audit/cleaners' },
-  { label: '待审核',       value: 0,    icon: 'Bell',        color: '#dc2626', bgColor: '#fef2f2', route: '/admin/audit/cleaners', badge: null },
+  { label: '未读告警',     value: 0,    icon: 'Bell',        color: '#dc2626', bgColor: '#fef2f2', route: '/admin/abnormal-checkins' },
 ])
 
 const todoCards = ref([
   { label: '保洁员资质审核', count: 0, icon: 'UserFilled',   color: '#dc2626', bgColor: '#fef2f2', route: '/admin/audit/cleaners?tab=pending' },
   { label: '待派单订单',     count: 0, icon: 'List',         color: '#d97706', bgColor: '#fffbeb', route: '/admin/dispatch' },
   { label: '待处理投诉',     count: 0, icon: 'ChatDotRound', color: '#dc2626', bgColor: '#fef2f2', route: '/admin/complaints' },
+  { label: '异常签到待核查', count: 0, icon: 'Location',     color: '#7c3aed', bgColor: '#f5f3ff', route: '/admin/abnormal-checkins' },
 ])
 
 // ────────────────────────────────────────────────
@@ -338,11 +340,17 @@ async function loadOverview() {
     overviewCards.value[2].value = d.ongoingOrders        ?? 0
     overviewCards.value[3].value = '¥' + Number(d.todayRevenue ?? 0).toFixed(2)
     overviewCards.value[4].value = d.totalCleaners         ?? 0
-    overviewCards.value[5].value = d.pendingAudit          ?? 0
-    overviewCards.value[5].badge = d.pendingAudit > 0 ? d.pendingAudit : null
-    todoCards.value[0].count = d.pendingAudit      ?? 0
-    todoCards.value[1].count = d.pendingDispatch   ?? 0
-    todoCards.value[2].count = d.pendingComplaints ?? 0
+    todoCards.value[0].count = d.pendingAudit            ?? 0
+    todoCards.value[1].count = d.pendingDispatch         ?? 0
+    todoCards.value[2].count = d.pendingComplaints       ?? 0
+    todoCards.value[3].count = d.pendingAbnormalCheckins ?? 0
+  } catch { /* 保持默认值 */ }
+  // 未读告警数独立拉取
+  try {
+    const notifs = await getAdminNotifications()
+    overviewCards.value[5].value = (notifs || []).filter(
+      n => (n.type === 7 || n.type === 8 || n.type === 12) && n.isRead === 0
+    ).length
   } catch { /* 保持默认值 */ }
 }
 </script>
