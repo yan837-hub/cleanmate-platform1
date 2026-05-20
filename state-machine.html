@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>订单状态机</title>
+<style>
+  body { margin: 0; background: #0d1b2a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+</style>
+</head>
+<body>
+<svg width="1000" height="420" viewBox="0 0 1000 420" xmlns="http://www.w3.org/2000/svg"
+     style="font-family:'Microsoft YaHei',SimHei,sans-serif;">
+  <defs>
+    <marker id="ab" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#4a90d9"/>
+    </marker>
+    <marker id="ar" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#e05555"/>
+    </marker>
+    <marker id="ay" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#d4a843"/>
+    </marker>
+  </defs>
+
+  <rect width="1000" height="420" fill="#0d1b2a"/>
+
+  <!-- 标题 -->
+  <text x="500" y="26" text-anchor="middle" fill="#dce8f5" font-size="15" font-weight="bold" letter-spacing="2">
+    订单状态转移图（9状态 FSM）
+  </text>
+
+  <!-- ====== 第一行：主流程 ====== -->
+
+  <!-- 状态1 待派单 -->
+  <rect x="10" y="50" width="100" height="40" rx="5" fill="#1a3355" stroke="#4a90d9" stroke-width="1.5"/>
+  <text x="60" y="73" text-anchor="middle" fill="#fff" font-size="13">待派单</text>
+  <text x="60" y="86" text-anchor="middle" fill="#6a9ec8" font-size="9">状态 1</text>
+
+  <!-- 1→2 管理员派单 -->
+  <line x1="110" y1="70" x2="157" y2="70" stroke="#4a90d9" stroke-width="1.5" marker-end="url(#ab)"/>
+  <text x="133" y="64" text-anchor="middle" fill="#6aa3d4" font-size="9">管理员派单</text>
+
+  <!-- 状态2 已派待确认 -->
+  <rect x="159" y="50" width="120" height="40" rx="5" fill="#1a3355" stroke="#4a90d9" stroke-width="1.5"/>
+  <text x="219" y="73" text-anchor="middle" fill="#fff" font-size="13">已派待确认</text>
+  <text x="219" y="86" text-anchor="middle" fill="#6a9ec8" font-size="9">状态 2</text>
+
+  <!-- 2→1 拒单/超时退回（弧线，向左） -->
+  <path d="M 159 80 Q 130 108 110 80" fill="none" stroke="#e05555" stroke-width="1.3"
+        stroke-dasharray="4,3" marker-end="url(#ar)"/>
+  <text x="132" y="116" text-anchor="middle" fill="#e07575" font-size="9">拒单/超时</text>
+
+  <!-- 2→3 确认接单 -->
+  <line x1="279" y1="70" x2="326" y2="70" stroke="#4a90d9" stroke-width="1.5" marker-end="url(#ab)"/>
+  <text x="302" y="64" text-anchor="middle" fill="#6aa3d4" font-size="9">确认接单</text>
+
+  <!-- 状态3 已接单 -->
+  <rect x="328" y="50" width="100" height="40" rx="5" fill="#1a3355" stroke="#4a90d9" stroke-width="1.5"/>
+  <text x="378" y="73" text-anchor="middle" fill="#fff" font-size="13">已接单</text>
+  <text x="378" y="86" text-anchor="middle" fill="#6a9ec8" font-size="9">状态 3</text>
+
+  <!-- 1→3 抢单（弧线绕上方） -->
+  <path d="M 60 50 Q 219 12 328 50" fill="none" stroke="#4a90d9" stroke-width="1"
+        stroke-dasharray="5,3" marker-end="url(#ab)"/>
+  <text x="194" y="11" text-anchor="middle" fill="#6aa3d4" font-size="9">抢单直通（1→3，立即写时段锁）</text>
+
+  <!-- 3→4 上门签到 -->
+  <line x1="428" y1="70" x2="475" y2="70" stroke="#4a90d9" stroke-width="1.5" marker-end="url(#ab)"/>
+  <text x="451" y="64" text-anchor="middle" fill="#6aa3d4" font-size="9">上门签到</text>
+
+  <!-- 状态4 服务中 -->
+  <rect x="477" y="50" width="90" height="40" rx="5" fill="#12402a" stroke="#4ad98a" stroke-width="1.5"/>
+  <text x="522" y="73" text-anchor="middle" fill="#fff" font-size="13">服务中</text>
+  <text x="522" y="86" text-anchor="middle" fill="#4ad98a" font-size="9">状态 4</text>
+
+  <!-- 4→5 提交完成 -->
+  <line x1="567" y1="70" x2="616" y2="70" stroke="#4a90d9" stroke-width="1.5" marker-end="url(#ab)"/>
+  <text x="591" y="64" text-anchor="middle" fill="#6aa3d4" font-size="9">提交完成</text>
+
+  <!-- 状态5 待确认完成 -->
+  <rect x="618" y="50" width="120" height="40" rx="5" fill="#1a3355" stroke="#4a90d9" stroke-width="1.5"/>
+  <text x="678" y="73" text-anchor="middle" fill="#fff" font-size="13">待确认完成</text>
+  <text x="678" y="86" text-anchor="middle" fill="#6a9ec8" font-size="9">状态 5</text>
+
+  <!-- 5→6 确认/48h自动 -->
+  <line x1="738" y1="70" x2="785" y2="70" stroke="#4a90d9" stroke-width="1.5" marker-end="url(#ab)"/>
+  <text x="761" y="59" text-anchor="middle" fill="#6aa3d4" font-size="9">顾客确认</text>
+  <text x="761" y="70" text-anchor="middle" fill="#6aa3d4" font-size="9">/48h自动</text>
+
+  <!-- 状态6 已完成 -->
+  <rect x="787" y="50" width="100" height="40" rx="5" fill="#2e1655" stroke="#9a4ad9" stroke-width="1.5"/>
+  <text x="837" y="73" text-anchor="middle" fill="#fff" font-size="13">已完成</text>
+  <text x="837" y="86" text-anchor="middle" fill="#b07fd4" font-size="9">状态 6</text>
+
+  <!-- ====== 第二行：分支状态 ====== -->
+
+  <!-- 1/2→8 顾客取消（从状态2向下） -->
+  <line x1="219" y1="90" x2="219" y2="175" stroke="#e05555" stroke-width="1.5"
+        stroke-dasharray="5,3" marker-end="url(#ar)"/>
+  <text x="199" y="136" text-anchor="end" fill="#e07575" font-size="9">顾客取消</text>
+  <text x="199" y="147" text-anchor="end" fill="#e07575" font-size="9">（状态1/2）</text>
+
+  <!-- 状态8 已取消 -->
+  <rect x="159" y="177" width="120" height="40" rx="5" fill="#3a1515" stroke="#e05555" stroke-width="1.5"/>
+  <text x="219" y="200" text-anchor="middle" fill="#fff" font-size="13">已取消</text>
+  <text x="219" y="213" text-anchor="middle" fill="#e07575" font-size="9">状态 8</text>
+
+  <!-- 3→9 申请改期（从状态3向下）-->
+  <line x1="378" y1="90" x2="378" y2="175" stroke="#d4a843" stroke-width="1.5"
+        stroke-dasharray="5,3" marker-end="url(#ay)"/>
+  <text x="358" y="136" text-anchor="end" fill="#d4c070" font-size="9">申请改期</text>
+  <text x="358" y="147" text-anchor="end" fill="#d4c070" font-size="9">（>2小时）</text>
+
+  <!-- 状态9 改期审核中 -->
+  <rect x="317" y="177" width="124" height="40" rx="5" fill="#2a2608" stroke="#d4a843" stroke-width="1.5"/>
+  <text x="379" y="200" text-anchor="middle" fill="#fff" font-size="13">改期审核中</text>
+  <text x="379" y="213" text-anchor="middle" fill="#d4c070" font-size="9">状态 9</text>
+
+  <!-- 9→3 同意/拒绝均回状态3（向右上弧） -->
+  <path d="M 441 193 Q 470 145 428 92" fill="none" stroke="#d4a843" stroke-width="1.3"
+        marker-end="url(#ay)"/>
+  <text x="474" y="152" fill="#d4c070" font-size="9">同意/拒绝</text>
+  <text x="474" y="163" fill="#d4c070" font-size="9">均回状态3</text>
+
+  <!-- 5→7 拒绝确认，发起投诉 -->
+  <path d="M 738 80 Q 800 130 787 177" fill="none" stroke="#e05555" stroke-width="1.2"
+        stroke-dasharray="4,3" marker-end="url(#ar)"/>
+  <text x="792" y="126" fill="#e07575" font-size="9">拒绝/投诉</text>
+
+  <!-- 6→7 完成后7日内售后 -->
+  <line x1="837" y1="90" x2="837" y2="175" stroke="#d4a843" stroke-width="1.5"
+        stroke-dasharray="5,3" marker-end="url(#ay)"/>
+  <text x="858" y="136" fill="#d4c070" font-size="9">售后投诉</text>
+  <text x="858" y="147" fill="#d4c070" font-size="9">（7日内）</text>
+
+  <!-- 状态7 售后中 -->
+  <rect x="787" y="177" width="100" height="40" rx="5" fill="#2a2010" stroke="#d4a843" stroke-width="1.5"/>
+  <text x="837" y="200" text-anchor="middle" fill="#fff" font-size="13">售后中</text>
+  <text x="837" y="213" text-anchor="middle" fill="#d4c070" font-size="9">状态 7</text>
+
+  <!-- 7→6 结案维持（向上弧，结案退款/驳回→已完成） -->
+  <path d="M 787 193 Q 762 142 787 92" fill="none" stroke="#d4a843" stroke-width="1.3"
+        marker-end="url(#ay)"/>
+  <text x="748" y="152" text-anchor="end" fill="#d4c070" font-size="9">结案维持</text>
+  <text x="748" y="163" text-anchor="end" fill="#d4c070" font-size="9">（退款/驳回）</text>
+
+  <!-- 7→1 结案免费重做（大弧线，底部穿越） -->
+  <path d="M 837 217 C 837,298 60,298 60,90" fill="none" stroke="#e05555" stroke-width="1.2"
+        stroke-dasharray="6,3" marker-end="url(#ar)"/>
+  <text x="460" y="294" text-anchor="middle" fill="#e07575" font-size="9">
+    结案免费重做 → 清空保洁员，释放时段锁，退回待派单池（7→1）
+  </text>
+
+  <!-- ====== 底部说明栏 ====== -->
+  <rect x="10" y="316" width="980" height="94" rx="5" fill="#071018" stroke="#1e3a5f" stroke-width="1"/>
+
+  <!-- 图例 -->
+  <line x1="24" y1="334" x2="50" y2="334" stroke="#4a90d9" stroke-width="2"/>
+  <text x="55" y="338" fill="#a8c8e8" font-size="11">主流程</text>
+  <line x1="120" y1="334" x2="146" y2="334" stroke="#e05555" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="151" y="338" fill="#a8c8e8" font-size="11">取消 / 异常</text>
+  <line x1="240" y1="334" x2="266" y2="334" stroke="#d4a843" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="271" y="338" fill="#a8c8e8" font-size="11">改期 / 售后</text>
+
+  <!-- 关键说明 -->
+  <text x="24" y="358" fill="#7a9ab8" font-size="10">★ 抢单 1→3：立即写时段锁；派单 1→2→3：保洁员确认后写锁，防孤立锁</text>
+  <text x="24" y="374" fill="#7a9ab8" font-size="10">★ 改期结果（9→3）：同意与拒绝均回状态3，原时段锁删除后重新写入</text>
+  <text x="24" y="390" fill="#7a9ab8" font-size="10">★ 结案两路：维持→状态6（退款/驳回联动费用）；重做→状态1（清空保洁员+释放锁）</text>
+</svg>
+</body>
+</html>
