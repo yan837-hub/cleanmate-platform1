@@ -31,9 +31,23 @@ public class OrderScheduler {
     }
 
     /** 每5分钟：待派单或已派单但预约时间已过无人接单，自动取消 */
-    @Scheduled(fixedRate = 5 * 60_000)
+    @Scheduled(fixedDelay = 5 * 60_000)
     public void autoCancelExpiredUnacceptedOrders() {
         int count = orderService.autoCancelExpiredUnacceptedOrders();
         if (count > 0) log.info("[定时任务] 预约过期无人接单自动取消 {} 单", count);
+    }
+
+    /** 每5分钟：派单30min未响应，退回待派单池 */
+    @Scheduled(fixedDelay = 5 * 60_000)
+    public void handleDispatchTimeout() {
+        int count = orderService.handleDispatchTimeout();
+        if (count > 0) log.info("[定时任务] 派单超时退回 {} 条", count);
+    }
+
+    /** 每5分钟：待确认完成且超过48h，自动确认并结算 */
+    @Scheduled(fixedDelay = 300_000)
+    public void handleAutoConfirm() {
+        int count = orderService.handleAutoConfirm();
+        if (count > 0) log.info("[定时任务] 48h自动确认完成 {} 单", count);
     }
 }

@@ -329,6 +329,15 @@ public class CustomerOrderController {
             n.setIsRead(0);
             try { notificationService.save(n); } catch (Exception ignored) {}
         });
+        // 通知保洁员被投诉
+        if (order.getCleanerId() != null) {
+            notificationService.sendNotification(
+                    order.getCleanerId(),
+                    NotificationType.COMPLAINT_NOTIFY.getCode(),
+                    "您收到一条投诉",
+                    "订单 #" + order.getOrderNo() + " 顾客已发起投诉，平台正在核查中，请耐心等待处理结果",
+                    order.getId());
+        }
         return Result.success();
     }
 

@@ -46,12 +46,14 @@ async function load() {
 async function doReadAll() {
   await markAllRead()
   list.value.forEach(n => { n.isRead = 1 })
+  window.dispatchEvent(new Event('notification-read'))
 }
 
 async function doRead(item) {
   if (item.isRead === 0) {
     item.isRead = 1
     await markRead(item.id).catch(() => {})
+    window.dispatchEvent(new Event('notification-read'))
   }
 }
 

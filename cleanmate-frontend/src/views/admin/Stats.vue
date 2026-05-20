@@ -347,7 +347,7 @@ async function loadAll() {
     drawRevenue(rows)
 
   } catch (e) {
-    console.error('统计数据加载失败', e)
+    // ignore
   } finally {
     loading.value = false
   }

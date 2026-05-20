@@ -20,7 +20,7 @@ export function getCleanerRank(limit = 10) {
   return request.get('/admin/stats/cleaner-rank', { params: { limit } })
 }
 
-// 订单趋势（旧名，兼容保留）
+// 订单趋势
 export function getOrderTrend(days = 7) {
   return getStatsTrend(days)
 }

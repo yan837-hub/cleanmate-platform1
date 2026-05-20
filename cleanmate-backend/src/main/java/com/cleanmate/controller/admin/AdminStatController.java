@@ -99,15 +99,6 @@ public class AdminStatController {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 旧接口兼容（order-trend，前端旧版使用）
-    // ─────────────────────────────────────────────────────────────
-    @GetMapping("/order-trend")
-    public Result<List<Map<String, Object>>> orderTrend(
-            @RequestParam(defaultValue = "7") int days) {
-        return trend(days);
-    }
-
-    // ─────────────────────────────────────────────────────────────
     // 私有工具：补齐缺失日期，保证前端折线连续
     // ─────────────────────────────────────────────────────────────
     private List<Map<String, Object>> fillTrendDates(

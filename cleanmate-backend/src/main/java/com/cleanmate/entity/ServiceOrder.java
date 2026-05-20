@@ -58,7 +58,7 @@ public class ServiceOrder extends BaseEntity {
      * 订单状态：
      * 1=待派单 2=已派单待确认 3=已接单
      * 4=服务中 5=待确认完成 6=已完成
-     * 7=售后处理中 8=已取消
+     * 7=售后处理中 8=已取消 9=售后中
      */
     private Integer status;
 

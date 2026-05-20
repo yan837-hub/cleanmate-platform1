@@ -49,6 +49,15 @@ public interface IServiceOrderService extends IService<ServiceOrder> {
     /** 出行提醒：给2小时内即将上门的保洁员推送通知，返回本次发送数量 */
     int sendUpcomingReminders();
 
+    /** 签到超时：已接单但预约时间+2h已过未签到，自动取消并释放时段，返回处理数量 */
+    int handleCheckinTimeout();
+
+    /** 预约过期取消：待派单或已派单但预约时间已过无人接单，自动取消，返回处理数量 */
+    int autoCancelExpiredUnacceptedOrders();
+
+    /** 自动确认完成：待确认且 autoConfirmAt 已过的订单，自动完成并结算，返回处理数量 */
+    int handleAutoConfirm();
+
     /** 管理员手动派单：status→2（待确认），保洁员需在首页确认接单，写dispatch_record、通知、operation_log */
     void manualDispatchByAdmin(Long orderId, Long cleanerId, Long adminId, String remark);
 

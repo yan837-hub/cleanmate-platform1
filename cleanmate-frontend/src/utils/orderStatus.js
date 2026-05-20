@@ -4,7 +4,7 @@
  */
 export const ORDER_STATUS_MAP = {
   1: { text: '待派单',     type: 'info'    },
-  2: { text: '待确认',     type: 'warning' },
+  2: { text: '待接单',     type: 'warning' },
   3: { text: '待上门',     type: 'primary'  },
   4: { text: '已签到',     type: 'primary' },
   5: { text: '待确认完成', type: 'warning' },

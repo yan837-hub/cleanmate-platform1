@@ -91,12 +91,6 @@
             <version>${hutool.version}</version>
         </dependency>
 
-        <!-- Redis（token黑名单，可选） -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-
         <!-- Spring Boot Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -71,7 +71,7 @@
         <span class="page-title">{{ $route.meta.title || '管理后台' }}</span>
         <div style="display:flex;align-items:center;gap:16px">
           <el-badge :value="unreadAlertCount" :hidden="unreadAlertCount === 0" type="danger" :max="99">
-            <el-button circle text style="font-size:18px;color:#9CA3AF" @click="router.push('/admin/abnormal-checkins')">
+            <el-button circle text style="font-size:18px;color:#2D4A33" @click="router.push('/admin/abnormal-checkins')">
               <el-icon><Bell /></el-icon>
             </el-button>
           </el-badge>
@@ -124,9 +124,13 @@ async function loadUnreadAlertCount() {
 onMounted(() => {
   loadUnreadAlertCount()
   pollTimer = setInterval(loadUnreadAlertCount, 30000)
+  window.addEventListener('notification-read', loadUnreadAlertCount)
 })
 
-onUnmounted(() => clearInterval(pollTimer))
+onUnmounted(() => {
+  clearInterval(pollTimer)
+  window.removeEventListener('notification-read', loadUnreadAlertCount)
+})
 
 function handleCommand(command) {
   if (command === 'logout') {
@@ -245,6 +249,12 @@ function handleCommand(command) {
   font-size: 14px;
   color: #9CA3AF;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+}
+
+:deep(.el-badge__content) {
+  background-color: #ef4444;
+  border: none;
+  font-weight: 600;
 }
 
 .admin-main {

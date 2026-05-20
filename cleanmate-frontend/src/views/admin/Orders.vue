@@ -82,14 +82,19 @@
         <el-table-column v-if="activeTab === 'expired'" label="自动取消时间" width="155">
           <template #default="{ row }">{{ fmt(row.updatedAt) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="80" fixed="right">
+        <el-table-column label="操作" width="120" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="openDetail(row)">详情</el-button>
             <el-button
               v-if="row.status === 1"
               type="warning" link
               @click="triggerDispatch(row)"
-            >派单</el-button>
+            >自动派单</el-button>
+            <el-button
+              v-if="row.status === 1"
+              type="success" link
+              @click="openDispatchDialog(row)"
+            >手动派单</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -133,9 +138,60 @@
 
         <div style="margin-top:20px;display:flex;gap:10px" v-if="detail.status === 1">
           <el-button type="primary" @click="triggerDispatch(detail)">触发自动派单</el-button>
+          <el-button type="success" @click="openDispatchDialog(detail)">手动派单</el-button>
         </div>
       </div>
     </el-drawer>
+
+    <!-- 手动派单弹窗 -->
+    <el-dialog v-model="dispatchDialog" title="手动派单 - 候选保洁员" width="820px" :close-on-click-modal="false">
+      <el-alert
+        v-if="dispatchFallback"
+        type="warning"
+        :closable="false"
+        style="margin-bottom:12px"
+        title="范围内（30km）无可用保洁员，以下为超范围兜底候选，可手动指定"
+      />
+      <el-alert
+        v-if="!dispatchFallback && candidates.length === 0 && !candidatesLoading"
+        type="error"
+        :closable="false"
+        style="margin-bottom:12px"
+        title="当前无任何可用候选保洁员（均已被排班占用）"
+      />
+      <el-table :data="candidates" v-loading="candidatesLoading" empty-text="无候选保洁员">
+        <el-table-column label="姓名" prop="realName" width="90" />
+        <el-table-column label="电话" prop="phone" width="125" />
+        <el-table-column label="距离" width="110">
+          <template #default="{ row }">
+            {{ row.distanceKm }} km
+            <el-tag v-if="row.distanceFallback" type="danger" size="small" style="margin-left:4px">超范围</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="服务评分" width="90">
+          <template #default="{ row }">{{ row.avgScore ?? '-' }}</template>
+        </el-table-column>
+        <el-table-column label="综合得分" width="90">
+          <template #default="{ row }">
+            <span style="font-weight:600;color:#409eff">{{ row.totalScore?.toFixed(1) ?? '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="档期" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.timeFeasible ? 'success' : 'warning'" size="small">{{ row.scheduleStatus }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="今日单量" prop="todayOrderCount" width="80" />
+        <el-table-column label="操作" width="70" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link :loading="dispatchingId === row.userId" @click="doManualDispatch(row)">指派</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <el-button @click="dispatchDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 录入订单弹窗（source=3） -->
     <el-dialog v-model="manualDialog" title="手动录入订单" width="500px" :close-on-click-modal="false">
@@ -144,7 +200,9 @@
           <el-input v-model="orderForm.customerPhone" placeholder="11位手机号" />
         </el-form-item>
         <el-form-item label="服务类型" required>
-          <el-input v-model="orderForm.serviceTypeName" placeholder="如：日常保洁（模糊匹配）" />
+          <el-select v-model="orderForm.serviceTypeName" placeholder="请选择服务类型" style="width:100%">
+            <el-option v-for="t in serviceTypeOptions" :key="t.id" :label="t.name" :value="t.name" />
+          </el-select>
         </el-form-item>
         <el-form-item label="服务地址" required>
           <el-input v-model="orderForm.addressDetail" placeholder="详细地址" />
@@ -155,8 +213,8 @@
         <el-form-item label="纬度">
           <el-input v-model="orderForm.latitude" placeholder="如：29.56" />
         </el-form-item>
-        <el-form-item label="房屋面积">
-          <el-input v-model="orderForm.houseArea" placeholder="㎡" />
+        <el-form-item v-if="needsArea" label="房屋面积" required>
+          <el-input v-model="orderForm.houseArea" placeholder="㎡，按面积计费必填" />
         </el-form-item>
         <el-form-item label="预约时间" required>
           <el-date-picker
@@ -182,13 +240,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getAdminOrders, getAdminOrderDetail, autoDispatch,
+  getDispatchCandidates, manualDispatch,
   manualCreateOrder, importExternalOrder, getExpiredUnacceptedOrders
 } from '@/api/admin'
+import { getServiceTypes } from '@/api/service'
 
 const activeTab    = ref('all')
 const list         = ref([])
@@ -201,9 +261,20 @@ const pageSize     = 10
 const drawer       = ref(false)
 const detail       = ref(null)
 const submitting   = ref(false)
-const manualDialog = ref(false)
+const manualDialog      = ref(false)
+const dispatchDialog    = ref(false)
+const candidates        = ref([])
+const candidatesLoading = ref(false)
+const dispatchFallback  = ref(false)
+const dispatchOrder     = ref(null)
+const dispatchingId     = ref(null)
 
 const filters = ref({ status: null, source: null, keyword: '' })
+const serviceTypeOptions = ref([])
+const selectedServiceType = computed(() =>
+  serviceTypeOptions.value.find(t => t.name === orderForm.value.serviceTypeName)
+)
+const needsArea = computed(() => selectedServiceType.value?.priceMode === 2)
 
 function onTabChange(tab) {
   currentPage.value = 1
@@ -262,8 +333,9 @@ function futureDate(days, hour) {
 // 每次点击重新生成，地址/坐标/面积随机，顾客取已注册账号
 function buildMockOrders() {
   const rand4 = () => String(Math.floor(Math.random() * 9000) + 1000)
-  const existingPhones = ['13800000002', '13800000003', '13800000004']
-  const randPhone = () => existingPhones[Math.floor(Math.random() * existingPhones.length)]
+  const prefixes = ['138', '139', '158', '159', '186', '187', '176', '177']
+  const randPhone = () => prefixes[Math.floor(Math.random() * prefixes.length)]
+    + String(Math.floor(Math.random() * 90000000) + 10000000)
   const randArea = () => [60, 80, 90, 100, 120, 150][Math.floor(Math.random() * 6)]
   // 重庆主城区坐标范围随机偏移（±0.08°）
   const locations = [
@@ -343,11 +415,55 @@ async function triggerDispatch(row) {
   } catch { return }
   try {
     const msg = await autoDispatch(row.id)
-    ElMessage.success(msg || '派单成功')
+    if (msg && msg.includes('暂无可用')) {
+      ElMessage.warning(msg)
+      await openDispatchDialog(row)
+    } else {
+      ElMessage.success(msg || '派单成功')
+      load()
+      drawer.value = false
+    }
+  } catch (e) {
+    ElMessage.error(e?.message || '派单失败')
+  }
+}
+
+async function openDispatchDialog(row) {
+  dispatchOrder.value  = row
+  candidates.value     = []
+  dispatchFallback.value = false
+  dispatchDialog.value = true
+  candidatesLoading.value = true
+  try {
+    const list = await getDispatchCandidates(row.id)
+    candidates.value = list
+    dispatchFallback.value = list.length > 0 && list.every(c => c.distanceFallback)
+  } catch (e) {
+    ElMessage.error('加载候选人失败')
+  } finally {
+    candidatesLoading.value = false
+  }
+}
+
+async function doManualDispatch(cleaner) {
+  if (!dispatchOrder.value) return
+  try {
+    await ElMessageBox.confirm(
+      `确认将订单 ${dispatchOrder.value.orderNo} 手动指派给 ${cleaner.realName}？`,
+      '手动派单确认', { type: 'warning' }
+    )
+  } catch { return }
+  dispatchingId.value = cleaner.userId
+  try {
+    await manualDispatch({ orderId: dispatchOrder.value.id, cleanerId: cleaner.userId })
+    ElMessage.success(`已手动指派给 ${cleaner.realName}`)
+    dispatchDialog.value = false
     load()
     drawer.value = false
   } catch (e) {
-    ElMessage.error(e?.message || '派单失败')
+    ElMessage.error(e?.message || '指派失败')
+  } finally {
+    dispatchingId.value = null
   }
 }
 
@@ -379,9 +495,18 @@ async function submitManual() {
     ElMessage.warning('请填写必填项')
     return
   }
+  if (needsArea.value && !orderForm.value.houseArea) {
+    ElMessage.warning('该服务类型按面积计费，请填写房屋面积')
+    return
+  }
   submitting.value = true
   try {
-    const res = await manualCreateOrder(orderForm.value)
+    const payload = { ...orderForm.value }
+    ;['longitude', 'latitude', 'houseArea'].forEach(k => {
+      if (payload[k] === '' || payload[k] === null) payload[k] = null
+      else payload[k] = Number(payload[k])
+    })
+    const res = await manualCreateOrder(payload)
     ElMessage.success(`录入成功，订单号：${res.systemOrderNo}，预估费用：¥${res.estimateFee}`)
     manualDialog.value = false
     load()
@@ -396,6 +521,7 @@ const route = useRoute()
 
 onMounted(async () => {
   await load()
+  getServiceTypes().then(res => { serviceTypeOptions.value = res || [] })
   const openId = route.query.openId
   if (openId) {
     openDetail({ id: Number(openId) })

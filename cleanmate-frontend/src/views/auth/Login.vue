@@ -100,10 +100,10 @@ const roleTabs = [
 ]
 
 const demoAccounts = [
-  { label: '顾客',    phone: '13800000001', password: '123456', role: 1, icon: 'User' },
-  { label: '保洁员1', phone: '13800000002', password: '123456', role: 2, icon: 'SetUp' },
-  { label: '保洁员2', phone: '13800000004', password: '123456', role: 2, icon: 'SetUp' },
-  { label: '管理员',  phone: '13800000003', password: '123456', role: 3, icon: 'Avatar' },
+  { label: '顾客',     phone: '15900000003', password: '123456', role: 1, icon: 'User' },
+  { label: '保洁员',   phone: '15900000005', password: '123456', role: 2, icon: 'SetUp' },
+  { label: '保洁员②', phone: '15900000009', password: '123456', role: 2, icon: 'SetUp' },
+  { label: '管理员',   phone: '15900000001', password: '123456', role: 3, icon: 'Avatar' },
 ]
 
 const form = reactive({ phone: '', password: '' })
@@ -123,11 +123,19 @@ function fillDemo(demo) {
   handleLogin()
 }
 
+const roleLabels = { 1: '顾客', 2: '保洁员', 3: '管理员' }
+
 async function handleLogin() {
   await formRef.value.validate()
   loading.value = true
   try {
     const data = await login({ ...form, role: activeRole.value })
+    if (data.role !== activeRole.value) {
+      const actual = roleLabels[data.role] || '未知'
+      const selected = roleLabels[activeRole.value] || '未知'
+      ElMessage.error(`该账号是${actual}，请切换到「${actual}」选项卡登录`)
+      return
+    }
     userStore.login(data)
     ElMessage.success('登录成功')
     router.push(getHomeRoute(data.role))

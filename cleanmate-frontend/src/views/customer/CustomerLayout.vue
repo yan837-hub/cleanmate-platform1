@@ -88,8 +88,12 @@ let unreadTimer = null
 onMounted(() => {
   refreshUnread()
   unreadTimer = setInterval(refreshUnread, 30000)
+  window.addEventListener('notification-read', refreshUnread)
 })
-onUnmounted(() => clearInterval(unreadTimer))
+onUnmounted(() => {
+  clearInterval(unreadTimer)
+  window.removeEventListener('notification-read', refreshUnread)
+})
 
 function handleCommand(command) {
   if (command === 'logout') {

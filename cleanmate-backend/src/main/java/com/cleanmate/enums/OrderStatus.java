@@ -14,7 +14,7 @@ public enum OrderStatus {
     IN_SERVICE(4, "服务中"),
     PENDING_COMPLETE_CONFIRM(5, "待确认完成"),
     COMPLETED(6, "已完成"),
-    AFTER_SALE(7, "售后处理中"),
+    AFTER_SALE(7, "售后中"),
     CANCELLED(8, "已取消"),
     RESCHEDULING(9, "改期审核中");
 

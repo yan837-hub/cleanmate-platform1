@@ -13,7 +13,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ─────────────────────────────────────────────
 -- 0. 日期变量
 -- ─────────────────────────────────────────────
-SET @today     = CURDATE();
+SET @today     = '2026-05-21';   -- 答辩日期固定，重复执行结果不漂移
 SET @yesterday = DATE_SUB(@today, INTERVAL 1 DAY);
 SET @tomorrow  = DATE_ADD(@today, INTERVAL 1 DAY);
 SET @day2      = DATE_ADD(@today, INTERVAL 2 DAY);

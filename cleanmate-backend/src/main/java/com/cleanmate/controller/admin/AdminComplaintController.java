@@ -161,6 +161,10 @@ public class AdminComplaintController {
                         OrderStatus.COMPLETED.getCode(), adminId, "投诉处理：驳回，订单恢复完成");
                 notify(complaint.getCustomerId(), "投诉已结案 - 驳回",
                         "您的订单 #" + order.getOrderNo() + " 投诉申请已驳回，订单已完成", order.getId());
+                if (complaint.getCleanerId() != null) {
+                    notify(complaint.getCleanerId(), "投诉结案通知",
+                            "订单 #" + order.getOrderNo() + " 投诉结案（驳回投诉），本单收入不受影响", order.getId());
+                }
             }
             case 4 -> {
                 BigDecimal refund = complaint.getRefundAmount() != null

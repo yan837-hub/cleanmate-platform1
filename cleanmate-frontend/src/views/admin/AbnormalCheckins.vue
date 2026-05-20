@@ -250,6 +250,7 @@ async function handleNotificationMarkRead(row) {
   try {
     await markAdminNotificationRead(row.id)
     row.isRead = 1
+    window.dispatchEvent(new Event('notification-read'))
     ElMessage.success('已标记已读')
   } catch {
     ElMessage.error('标记已读失败')
@@ -265,6 +266,7 @@ async function markAllNotificationsRead() {
       row.isRead = 1
     } catch { /* 单条失败静默跳过 */ }
   }
+  window.dispatchEvent(new Event('notification-read'))
   ElMessage.success('已全部标记已读')
 }
 

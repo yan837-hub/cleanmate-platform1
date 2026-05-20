@@ -4,8 +4,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cleanmate.common.PageResult;
 import com.cleanmate.common.Result;
 import com.cleanmate.dto.dispatch.ManualDispatchDTO;
+import com.cleanmate.entity.CleanerProfile;
+import com.cleanmate.entity.DispatchRecord;
 import com.cleanmate.entity.ServiceOrder;
 import com.cleanmate.enums.OrderStatus;
+import com.cleanmate.service.ICleanerProfileService;
+import com.cleanmate.service.IDispatchRecordService;
 import com.cleanmate.service.IServiceOrderService;
 import com.cleanmate.vo.dispatch.CandidateVO;
 import com.cleanmate.vo.order.OrderVO;
@@ -24,6 +28,8 @@ import java.util.List;
 public class AdminDispatchController {
 
     private final IServiceOrderService orderService;
+    private final ICleanerProfileService cleanerProfileService;
+    private final IDispatchRecordService dispatchRecordService;
 
     /**
      * 待处理订单池：status=1（待派单）+ status=2（已派单待确认）
@@ -63,7 +69,19 @@ public class AdminDispatchController {
         if (cleanerId == null) {
             return Result.success("暂无可用保洁员，订单继续等待");
         }
-        return Result.success("派单成功，已通知保洁员 " + cleanerId + " 确认接单");
+        CleanerProfile profile = cleanerProfileService.lambdaQuery()
+                .eq(CleanerProfile::getUserId, cleanerId).one();
+        String name = profile != null ? profile.getRealName() : cleanerId.toString();
+        DispatchRecord dr = dispatchRecordService.lambdaQuery()
+                .eq(DispatchRecord::getOrderId, orderId)
+                .eq(DispatchRecord::getCleanerId, cleanerId)
+                .orderByDesc(DispatchRecord::getId).last("LIMIT 1").one();
+        String extra = "";
+        if (dr != null) {
+            if (dr.getScore() != null)       extra += "，综合得分 " + dr.getScore();
+            if (dr.getDistanceKm() != null)  extra += "，距离 " + dr.getDistanceKm() + " km";
+        }
+        return Result.success("派单成功，已指派给 " + name + extra);
     }
 
     /**

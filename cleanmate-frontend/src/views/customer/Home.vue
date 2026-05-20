@@ -113,7 +113,7 @@ import { formatTime } from '@/utils/time'
 import { useUserStore } from '@/store/user'
 import { getCustomerStats, getMyOrders } from '@/api/order'
 import { getServiceTypes } from '@/api/service'
-import { trustIndicators, services as serviceConfig } from '@/config/homeConfig'
+import { trustIndicators } from '@/config/homeConfig'
 
 const userStore = useUserStore()
 
@@ -123,8 +123,7 @@ const serviceTypes = ref([])
 const imgFailed = ref({})
 
 const services = computed(() => {
-  return serviceTypes.value.map((st, index) => {
-    const config = serviceConfig[index] || {}
+  return serviceTypes.value.map((st) => {
     let priceText = ''
     if (st.priceMode === 1) {
       priceText = `¥${st.basePrice}/小时`
@@ -136,10 +135,8 @@ const services = computed(() => {
     return {
       id: st.id,
       name: st.name,
-      desc: st.description || config.desc || '',
+      desc: st.description || '',
       price: priceText,
-      icon: config.icon || '🏠',
-      bg: config.bg || 'linear-gradient(135deg, #E8F0EA 0%, #D8E6DB 100%)',
       coverImg: st.coverImg || '',
     }
   })

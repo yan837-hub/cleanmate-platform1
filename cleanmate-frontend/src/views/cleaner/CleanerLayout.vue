@@ -49,8 +49,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox, ElMessage, ElNotification } from 'element-plus'
 import { Bell } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
@@ -58,6 +58,7 @@ import { getCleanerStats } from '@/api/order'
 import { getUnreadCount, getNotifications } from '@/api/notification'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 const pendingDispatchCount = ref(0)
@@ -99,6 +100,12 @@ async function refreshUnread() {
   } catch {}
 }
 
+watch(() => route.path, (newPath, oldPath) => {
+  if (newPath === '/cleaner/orders' || oldPath === '/cleaner/orders') {
+    refreshBadge()
+  }
+})
+
 let badgeTimer = null
 onMounted(() => {
   refreshBadge()
@@ -107,8 +114,12 @@ onMounted(() => {
     refreshBadge()
     refreshUnread()
   }, 30000)
+  window.addEventListener('notification-read', refreshUnread)
 })
-onUnmounted(() => clearInterval(badgeTimer))
+onUnmounted(() => {
+  clearInterval(badgeTimer)
+  window.removeEventListener('notification-read', refreshUnread)
+})
 
 function handleCommand(command) {
   if (command === 'notifications') {
@@ -200,11 +211,19 @@ function handleCommand(command) {
 :deep(.el-menu--horizontal) {
   --el-menu-hover-bg-color: transparent;
   --el-menu-bg-color: transparent;
+  overflow: visible;
 }
 :deep(.el-menu--horizontal > .el-menu-item) {
   color: #4A5568;
   font-size: 15px !important;
   overflow: visible;
+}
+:deep(.el-menu--horizontal > .el-menu-item .el-badge) {
+  display: flex;
+  align-items: center;
+}
+:deep(.el-menu--horizontal > .el-menu-item .el-badge__content) {
+  top: 4px;
 }
 
 .el-main-wrap {

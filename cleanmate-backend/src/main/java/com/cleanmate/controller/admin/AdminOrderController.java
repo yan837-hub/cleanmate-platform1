@@ -181,24 +181,4 @@ public class AdminOrderController {
         private String remark;
     }
 
-    /**
-     * 强制取消订单（管理员权限）
-     */
-    @PutMapping("/{orderId}/cancel")
-    public Result<Void> cancelOrder(@PathVariable Long orderId,
-                                    @RequestParam String reason,
-                                    Authentication auth) {
-        Long adminId = (Long) auth.getPrincipal();
-        ServiceOrder order = orderService.getById(orderId);
-        if (order == null) throw new BusinessException(ErrorCode.ORDER_NOT_EXIST);
-        if (order.getStatus() >= OrderStatus.IN_SERVICE.getCode())
-            throw new BusinessException(ErrorCode.ORDER_STATUS_ERROR);
-
-        order.setCancelReason(reason);
-        order.setStatus(OrderStatus.CANCELLED.getCode());
-        orderService.updateById(order);
-        orderService.logStatusChange(orderId, order.getStatus(),
-                OrderStatus.CANCELLED.getCode(), adminId, "管理员强制取消：" + reason);
-        return Result.success();
-    }
 }

@@ -107,17 +107,8 @@ public class CustomerAddressController {
     }
 
     // ========== 坐标填充（优先高德API，失败则按城市兜底） ==========
-    private static final java.util.Map<String, double[]> CITY_COORDS = java.util.Map.ofEntries(
-        java.util.Map.entry("重庆市", new double[]{106.5516, 29.5630}),
-        java.util.Map.entry("北京市", new double[]{116.4074, 39.9042}),
-        java.util.Map.entry("上海市", new double[]{121.4737, 31.2304}),
-        java.util.Map.entry("广州市", new double[]{113.2644, 23.1291}),
-        java.util.Map.entry("深圳市", new double[]{114.0579, 22.5431}),
-        java.util.Map.entry("成都市", new double[]{104.0668, 30.5728}),
-        java.util.Map.entry("武汉市", new double[]{114.3054, 30.5928}),
-        java.util.Map.entry("西安市", new double[]{108.9398, 34.3416}),
-        java.util.Map.entry("杭州市", new double[]{120.1551, 30.2741}),
-        java.util.Map.entry("南京市", new double[]{118.7969, 32.0603})
+    private static final java.util.Map<String, double[]> CITY_COORDS = java.util.Map.of(
+        "重庆市", new double[]{106.5516, 29.5630}
     );
 
     private void fillCoords(CustomerAddress address, AddressDTO dto) {

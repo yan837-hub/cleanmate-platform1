@@ -31,6 +31,9 @@ public class CandidateVO {
     /** 上一单地址快照，无则为null */
     private String prevOrderAddress;
 
+    /** 上一单预约时间（yyyy-MM-dd HH:mm），用于前端展示出发时间上下文 */
+    private String prevOrderTime;
+
     /** 时间可行性：true=时间充裕，false=时间偏紧 */
     private Boolean timeFeasible;
 
@@ -39,4 +42,7 @@ public class CandidateVO {
 
     /** 是否为超范围兜底候选（30km内无人时才出现，距离仅供参考） */
     private Boolean distanceFallback;
+
+    /** 综合派单得分（距离50% + 评分30% + 均衡20%），时间偏紧时降权50% */
+    private Double totalScore;
 }

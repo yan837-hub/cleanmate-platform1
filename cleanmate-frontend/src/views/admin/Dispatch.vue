@@ -142,7 +142,7 @@
                   <span class="meta-item"><el-icon><List /></el-icon> 今日 {{ c.todayOrderCount }} 单</span>
                 </div>
                 <div v-if="c.prevOrderAddress" class="prev-addr">
-                  上一单：{{ c.prevOrderAddress }}
+                  出发：{{ c.prevOrderTime ? c.prevOrderTime + ' ' : '' }}{{ c.prevOrderAddress }}
                 </div>
               </div>
             </div>

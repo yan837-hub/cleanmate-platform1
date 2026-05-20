@@ -104,12 +104,14 @@ const pageSize = ref(10)
 const statusFilter = ref(null)
 
 const statusTabs = [
-  { label: '全部',   value: null },
-  { label: '已接单', value: 3 },
-  { label: '服务中', value: 4 },
-  { label: '待确认', value: 5 },
-  { label: '已完成', value: 6 },
-  { label: '售后中', value: 7 },
+  { label: '全部',       value: null },
+  { label: '待接单',     value: 2 },
+  { label: '待上门',     value: 3 },
+  { label: '服务中',     value: 4 },
+  { label: '待确认完成', value: 5 },
+  { label: '已完成',     value: 6 },
+  { label: '售后中',     value: 7 },
+  { label: '改期审核中', value: 9 },
 ]
 
 async function loadOrders() {
