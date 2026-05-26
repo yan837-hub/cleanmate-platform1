@@ -1,7 +1,7 @@
 # CleanMate Platform — 系统逻辑全链路文档
 
 > **用途**：作为漏洞分析、代码审查、功能对接和答辩参考时的"路线图"。所有类名、字段名、表名均与代码/数据库保持一致。
-> **最后更新**：2026-05-09（新增 Q8：数据库无外键如何保障数据完整性）
+> **最后更新**：2026-05-25（补充：source 完整链路、Haversine 公式推导、状态机取消/改期修正、Q10-Q22 技术栈/JWT/索引/并发/创新点等全面答辩 Q&A）
 > **技术栈**：Spring Boot 3.2.5 + MyBatis-Plus 3.5.7 + MySQL 8.0 + Vue 3 + Vite + Pinia + Element Plus
 
 ---
@@ -16,8 +16,32 @@
 6. [投诉与售后全链路](#六投诉与售后全链路)
 7. [服务过程照片系统](#七服务过程照片系统)
 8. [图片上传通用机制](#八图片上传通用机制)
-9. [重点难点防坑指南](#九重点难点防坑指南)
-10. [模拟答辩 Q&A](#十模拟答辩-qa)（Q1~Q9）
+9. [重点难点防坑指南](#九重点难点防坑指南)（9.1~9.10）
+   - 9.1 JWT 登录令牌机制
+   - 9.2 订单状态机防错设计
+   - 9.3 保洁员档期三层校验
+   - 9.4 自动派单评分算法
+   - 9.5 评价可见性与 avg_score 同步
+   - 9.6 Haversine 球面距离公式（含推导）
+   - 9.7 地址快照机制
+   - 9.8 系统参数动态配置
+   - 9.9 站内通知系统（12种类型）
+   - **9.10 订单来源 source 完整链路**
+10. [模拟答辩 Q&A](#十模拟答辩-qa)（Q1~Q22）
+    - Q1~Q9：原有题目
+    - Q10：技术栈选型
+    - Q11：前后端通信链路
+    - Q12：JWT 完整工作流程
+    - Q13：CSRF / 密码存储
+    - Q14：角色权限控制
+    - Q15：MyBatis-Plus / 分页 / 自动填充
+    - Q16：事务 / 通知容错设计
+    - Q17：数据库索引设计
+    - Q18：并发抢单乐观锁
+    - Q19：定时任务清单
+    - Q20：系统创新点
+    - Q21：地址快照设计
+    - Q22：外部接口鉴权
 
 ---
 
@@ -65,8 +89,8 @@
 
 ```
 user（主表，所有角色都在这里）
-  ├── customer_profile（顾客扩展信息）
   ├── cleaner_profile（保洁员扩展信息：avg_score、技能标签、常驻坐标）
+  ├── customer_address（顾客服务地址，支持多地址管理，多对一）
   └── cleaning_company（所属保洁公司，保洁员多对一）
 ```
 
@@ -133,18 +157,18 @@ cleaner_income（保洁员收入账单，按月汇总）
 ```
 
 `fee_detail` 关键字段：
-- `service_fee`：服务费（≈ actual_fee）
+- `service_fee`：基础服务费
 - `overtime_fee`：超时加班费（按小时计费时才有）
-- `commission`：平台佣金（默认 20%，来自 `system_config.commission_rate`）
-- `cleaner_income_amount`：保洁员实收 = service_fee × (1 - commission_rate)
+- `commission_rate`：平台佣金比例（如 0.2000 = 20%，来自 `system_config`）
+- `commission_fee`：平台佣金金额
+- `cleaner_income`：保洁员实收 = service_fee × (1 - commission_rate)
 
-### 2.6 评价、投诉与其他（9张表）
+### 2.6 评价、投诉与其他（8张表）
 
 ```
 order_review（订单评价，含图片）
 complaint（投诉与售后，含图片）
 service_photo（保洁员拍摄的服务过程照片，分前/中/后三阶段）
-customer_address（顾客服务地址，支持多地址管理）
 dispatch_record（派单记录：谁被派了、方式、是否接受）
 checkin_record（保洁员打卡记录：时间、GPS坐标、是否异常）
 notification（站内消息通知，12种类型）
@@ -353,7 +377,7 @@ Step 4: 全部通过 →
             ├─ 系统/手动派单 → [2] DISPATCHED（已派单待确认）
             │                       ├─ 保洁员接受 → [3] ACCEPTED
             │                       └─ 拒绝/超时 → [1]（退回）
-            └─ 改期中 → [9] RESCHEDULING → 确认后 → [1]
+            └─ 改期中 → [9] RESCHEDULING → 保洁员同意/拒绝 → 均回到 [3]
 
 [3] ACCEPTED → 打卡 → [4] IN_SERVICE（服务中）
 [4] IN_SERVICE → 提交完成 → [5] PENDING_CONFIRM（待顾客确认）
@@ -362,7 +386,10 @@ Step 4: 全部通过 →
 [6] COMPLETED → 7天内发起投诉 → [7] AFTER_SALE
 [7] AFTER_SALE → 管理员处理完 → [6] COMPLETED
 
-任何状态 → 取消 → [8] CANCELLED（已取消）
+取消规则：仅 [1][2][3] 可取消 → [8] CANCELLED（已取消）
+         其中 [3] 已接单取消：必须距预约时间 > refund_deadline_hours（默认2小时），否则拒绝
+改期规则：仅 [3] 已接单 → 申请改期 → [9] RESCHEDULING → 保洁员同意/拒绝 → 均回到 [3]
+         且需距预约时间 > 120 分钟才可提交改期申请
 ```
 
 每次状态变更都在 `order_status_log` 写一条记录（操作人、前状态、后状态、时间戳），出了问题可完整追溯，就像快递物流轨迹。
@@ -476,9 +503,9 @@ Step 4: 全部通过 →
       ├─ 更新状态：2（处理中）或 3（已结案）
       ├─ 若结案，必选判定结果：
       │    ├─ 1 = 全额退款
-      │    ├─ 4 = 部分退款（需输入具体退款金额）
-      │    ├─ 3 = 免费重做（需指定新预约时间）
-      │    └─ 2 = 驳回投诉
+      │    ├─ 2 = 部分退款（需输入具体退款金额）
+      │    ├─ 3 = 驳回投诉
+      │    └─ 4 = 免费重做（需指定新预约时间）
       └─ 管理员备注（必填）
       │
       ▼ PUT /admin/complaints/{id}
@@ -490,20 +517,29 @@ Step 4: 全部通过 →
 ```
 order.actual_fee = 0
 order.status → 6（已完成）
-fee_detail: service_fee=0, commission=0, cleaner_income_amount=0
+fee_detail: service_fee=0, commission_fee=0, cleaner_income=0
 payment_record: 新增退款流水
 通知顾客"全额退款"
 通知保洁员"本单收入已清零"
 ```
 
-**result=2（驳回投诉）：**
+**result=2（部分退款）：**
+```
+order.actual_fee = original_actual_fee - refund_amount
+order.status → 6（已完成）
+fee_detail 按退款金额同步调整
+payment_record: 新增部分退款流水
+通知顾客"部分退款 ¥{refund_amount}"
+```
+
+**result=3（驳回投诉）：**
 ```
 order.status → 6（已完成）
 fee_detail 不变（保洁员收入不受影响）
 通知顾客"投诉已驳回，服务质量认定无问题"
 ```
 
-**result=3（免费重做）：**
+**result=4（免费重做）：**
 ```
 order.status → 1（重回待派单）
 order.cleaner_id = null（清除原保洁员）
@@ -514,23 +550,14 @@ order.actual_fee = 0
 通知原保洁员"本单收入清零"
 ```
 
-**result=4（部分退款）：**
-```
-order.actual_fee = original_actual_fee - refund_amount
-order.status → 6（已完成）
-fee_detail 按退款金额同步调整
-payment_record: 新增部分退款流水
-通知顾客"部分退款 ¥{refund_amount}"
-```
-
 ### 6.4 投诉结案后的评价逻辑
 
 | 投诉结果 | 是否允许评价 |
 |---|---|
 | result=1（全额退款） | ✓ 允许（投诉已结案且非免费重做） |
-| result=2（驳回） | ✓ 允许 |
-| result=3（免费重做） | ✗ 不允许（订单重置为待派单，属新服务流程） |
-| result=4（部分退款） | ✓ 允许 |
+| result=2（部分退款） | ✓ 允许 |
+| result=3（驳回） | ✓ 允许 |
+| result=4（免费重做） | ✗ 不允许（订单重置为待派单，属新服务流程） |
 
 ---
 
@@ -700,6 +727,33 @@ avg_score 影响：保洁员的评分得分（派单权重的 30%），隐藏差
 2. 抢单池：展示各订单离保洁员的距离（km）
 3. 打卡校验：判断保洁员是否到达顾客家附近（500 米判定）
 
+**公式推导（代码在 `DistanceUtil.java`）：**
+
+```
+输入：两点经纬度 (lat1, lon1) 和 (lat2, lon2)，单位：度
+
+Step 1. 转弧度差
+  dLat = toRadians(lat2 - lat1)
+  dLon = toRadians(lon2 - lon1)
+
+Step 2. Haversine 中间量 a（球面三角核心）
+  a = sin²(dLat/2)
+    + cos(toRadians(lat1)) × cos(toRadians(lat2)) × sin²(dLon/2)
+
+Step 3. 中心角 c（反正切）
+  c = 2 × atan2(√a, √(1-a))
+
+Step 4. 弧长 = 地球半径 × c
+  距离(km) = 6371.0 × c
+```
+
+**为什么不直接用欧氏距离？**
+经纬度坐标不是笛卡尔坐标，相差 1° 的实际距离随纬度变化：赤道约 111 km，高纬度处更短。Haversine 把球面弧长转换为真实公里数，城市范围内误差 < 0.1%，精度足够。
+
+**代码实现：**
+- `calculateKm()` → 返回 double，精确到小数点后2位
+- `calculateMeters()` → 直接返回 `(int)(km × 1000)`，打卡场景用
+
 ---
 
 ### 9.7 地址快照机制
@@ -726,6 +780,8 @@ avg_score 影响：保洁员的评分得分（派单权重的 30%），隐藏差
 
 ### 9.9 站内通知系统（12种类型）
 
+> 通知写入用 `try { ... } catch (Exception ignored) {}` 包裹，**通知失败不影响主流程事务**。
+
 `notification` 表的 `type` 字段枚举：
 
 | type | 枚举名 | 触发场景 | 接收人 |
@@ -742,6 +798,136 @@ avg_score 影响：保洁员的评分得分（派单权重的 30%），隐藏差
 | 10 | RESCHEDULE_REQUEST | 顾客申请改期 | 对应保洁员 |
 | 11 | RESCHEDULE_RESULT | 保洁员同意/拒绝改期 | 顾客 |
 | 12 | ABNORMAL_CHECKIN | 保洁员打卡位置异常 | **所有管理员** |
+
+---
+
+---
+
+### 9.10 订单来源（source）完整链路
+
+#### 9.10.1 定义
+
+`ServiceOrder.source` 是一个 `Integer` 字段，无枚举类，全靠约定数值：
+
+| 值 | 含义 |
+|---|---|
+| 1 | 平台自有（顾客自己在前端下单） |
+| 2 | 外部导入（模拟第三方平台推单，如"京东到家"） |
+| 3 | 手动录入（管理员在后台填表录入） |
+
+---
+
+#### 9.10.2 source=1 完整链路
+
+**谁触发：** 顾客在前端下单页面点"提交预约"
+
+**前端（`order.js → createOrder(data)`）：**
+```
+POST /customer/orders
+payload 里没有 source 字段（顾客不需要传）
+```
+
+**后端（`ServiceOrderServiceImpl.createOrder()`，第99行）：**
+```java
+order.setSource(1);   // 后端硬编码写 1
+order.setLongitude(address.getLongitude());  // 坐标从顾客地址簿取
+order.setLatitude(address.getLatitude());
+```
+
+订单号前缀：`CM`（例：`CM20250525143012_0321`）
+
+流程：校验服务类型 → 校验地址归属 → 计算预估费用 → 保存快照 → 写状态日志 → 通知顾客 → **返回订单ID，不触发派单**
+
+---
+
+#### 9.10.3 source=2 完整链路
+
+**谁触发：** 管理员在订单管理页点"模拟外部导入"按钮
+
+**前端（`admin/Orders.vue`，`batchImport()`）：**
+```
+buildMockOrders()  // 本地构造4条随机订单
+  - 随机重庆主城区地址 + 坐标（±0.08°偏移）
+  - 随机手机号（randPhone）
+  - 随机服务类型：日常/深度/开荒保洁
+  - 平台来源随机：京东到家 / 美团到家
+  - 预约时间：未来1~4天随机时段
+循环调用 importExternalOrder(order)
+  Header: X-Platform-Key: jd2home_mock_key
+  POST /external/orders/import
+```
+
+**后端（`ExternalOrderController.importOrder()`）：**
+```
+校验 X-Platform-Key == "jd2home_mock_key"（硬编码，模拟API密钥鉴权，不走JWT）
+  → orderService.importOrder(dto, source=2, operatorId=null)
+```
+
+**进入共用 `importOrder()` 方法（第1291行）：**
+```
+1. 按名称精确匹配服务类型
+2. 按手机号找顾客 → 找不到就自动注册
+   source==2 → nickname = "外部用户_XXXX"（尾4位手机号）
+3. 计算预估费用（用 serviceType.minDuration）
+4. 构建备注前缀 "[京东到家:JD1234] "
+5. 解析预约时间
+6. 订单号前缀：source==2 → "JD_"（例：JD_20250525143012_0321）
+7. 保存订单，setSource(2)，坐标从dto取（前端已随机生成）
+8. 写状态日志，remark="外部平台导入"
+9. source==3 才写操作日志，source==2 跳过
+10. CompletableFuture.runAsync(autoDispatch) 异步触发派单
+```
+
+---
+
+#### 9.10.4 source=3 完整链路
+
+**谁触发：** 管理员点"录入订单"按钮，填表提交
+
+**前端（`admin/Orders.vue`，`submitManual()`）：**
+```
+校验必填：customerPhone、serviceTypeName、addressDetail、appointTime
+longitude/latitude 选填，空则传 null
+POST /admin/orders/manual-create（带JWT，走管理员权限）
+```
+
+**后端（`AdminOrderController.manualCreate()`）：**
+```
+从 Authentication 取 adminId
+  → orderService.importOrder(dto, source=3, operatorId=adminId)
+```
+
+**同样进入 `importOrder()`：**
+```
+1~5. 同上
+6. 订单号前缀："MANUAL_"
+   source==3 → nickname = "用户_XXXX"（与外部"外部用户_XXXX"区分）
+7. 保存订单，setSource(3)，坐标 = 管理员手填（可为null）
+8. 写状态日志，remark="管理员手动录入"
+9. source==3 额外写一条 OperationLog（记录哪个管理员操作）
+10. 同样触发 CompletableFuture.runAsync(autoDispatch)
+```
+
+---
+
+#### 9.10.5 三种来源汇合后
+
+三种 source 创建的订单，落库后 `status=1`（待派单），**后续流程完全一样**。source 字段此后只用于：
+- 管理后台订单列表的来源筛选
+- `OrderVO.sourceLabel` 展示（平台自有 / 外部导入 / 手动录入）
+
+**关键区别汇总：**
+
+| 维度 | source=1 | source=2 | source=3 |
+|------|----------|----------|----------|
+| 谁操作 | 顾客自己 | 前端模拟第三方推单 | 管理员手动填表 |
+| 鉴权方式 | JWT（顾客Token） | 固定平台密钥（X-Platform-Key） | JWT（管理员Token） |
+| 创建入口 | `createOrder()` | `importOrder(dto, 2, null)` | `importOrder(dto, 3, adminId)` |
+| 顾客账号 | 已登录顾客 | 按手机号自动注册 | 按手机号自动注册 |
+| 坐标来源 | 顾客地址簿（精确） | 前端随机生成（±0.08°偏移） | 管理员手填（可为null） |
+| 订单号前缀 | `CM` | `JD_` | `MANUAL_` |
+| 操作日志 | 无 | 无 | 额外写一条 OperationLog |
+| 派单触发 | 不触发，等管理员操作 | 异步自动派单 | 异步自动派单 |
 
 ---
 
@@ -824,17 +1010,15 @@ avg_score 影响：保洁员的评分得分（派单权重的 30%），隐藏差
 
 ---
 
-### Q8：数据库没有设置外键约束，数据完整性靠什么保障？
+### Q8：数据库的外键约束是怎么设计的？数据完整性如何保障？
 
-> 本系统数据库未启用物理外键约束，这是在保洁平台业务场景下的主动设计选择，原因有三：
+> 本系统对外键约束做了**选择性使用**：核心的用户归属关系（如 `cleaner_profile.user_id`、`customer_address.user_id`、`service_order.customer_id`）保留了物理外键，防止产生孤儿数据；而高频写入的业务关联（如订单与保洁员、投诉与订单、派单记录等）没有设置物理外键，原因有两点：
 >
 > **第一，性能考虑。** 外键约束在每次插入、更新时触发级联检查，在高并发派单场景下会产生额外的行锁竞争，影响系统响应速度。
 >
-> **第二，操作灵活性。** 业务上需要软删除、状态标记等操作，物理外键在这些场景下会引发不必要的约束冲突。
+> **第二，操作灵活性。** 业务上存在软删除、状态标记、免费重做时清除保洁员等操作，物理外键在这些场景下会引发不必要的约束冲突。
 >
-> **第三，可维护性。** 数据迁移、补录测试数据时，物理外键需要反复 DISABLE / ENABLE，增加维护成本。
->
-> 数据完整性改由**三层应用层防护**保障：
+> 无物理外键的关联，数据完整性由**三层应用层防护**保障：
 >
 > **第一层：Service 层写入前显式校验关联合法性。** 例如顾客下单前，后端先查询 `service_type` 确认服务类型存在且上架；保洁员注册时，先查询 `cleaning_company` 确认公司存在且状态正常；若关联数据不存在，直接抛出 `BusinessException`，不进行写入。
 >
@@ -879,5 +1063,203 @@ avg_score 影响：保洁员的评分得分（派单权重的 30%），隐藏差
 > `IServiceOrderService` 定义了 15 个自定义方法，覆盖下单、抢单、派单、打卡、完工上报、自动确认等完整订单流程；`ICleanerScheduleTemplateService` 封装了档期三层校验（特殊调整 override → 周模板 template → 时间锁 time_lock）。这些复杂业务逻辑全部集中在 Service 层，Controller 只负责接收参数和返回结果，体现了职责分离原则。
 
 ---
+>
 
-*本文档基于 CleanMate 项目当前完整代码实现分析，最后更新：2026-05-09*
+
+---
+
+### Q10：系统用了哪些技术，各自起什么作用？
+
+> **后端核心：**
+> - **Spring Boot 3.2.5**：Java 主框架，内嵌 Tomcat，约定大于配置，快速搭建 RESTful 服务
+> - **Spring Security**：认证授权框架，管理 JWT 验证、角色权限拦截、密码加密
+> - **MyBatis-Plus 3.5.7**：ORM 框架，内置通用 CRUD，Lambda 链式查询，分页插件自动加 LIMIT，避免手写大量 SQL
+> - **MySQL 8.0**：关系型数据库，存储全部业务数据
+> - **JJWT 0.12.5**：JWT 生成和解析库，`io.jsonwebtoken` 包
+> - **Lombok**：注解生成 getter/setter/构造器，减少样板代码
+> - **Hutool 5.8.27**：工具库，文件操作等
+> - **Java 17**：使用 switch 表达式、文本块等新特性
+>
+> **前端核心：**
+> - **Vue 3**：渐进式前端框架，组件化开发，响应式数据绑定
+> - **Vue Router**：前端路由，实现 SPA 单页应用跳转，全局守卫做权限控制
+> - **Pinia**：状态管理，存储全局登录用户信息（token、role）
+> - **Axios**：HTTP 请求库，封装了请求拦截（自动加 Token）和响应拦截（统一错误处理）
+> - **Element Plus**：UI 组件库，表格/表单/弹窗/上传等开箱即用
+> - **Vite**：构建工具，开发时热更新快
+
+---
+
+### Q11：前后端是如何通信的？
+
+> 前端用 **Axios** 发 HTTP 请求，后端用 **Spring Boot RESTful** 接口响应，数据格式统一 JSON。
+>
+> **完整链路：**
+> ```
+> 用户操作 → Vue 组件
+>   → src/utils/request.js（Axios 封装）
+>     → 请求拦截器：自动添加 "Authorization: Bearer <token>"
+>       → 后端 Spring Security 过滤链
+>         → JwtAuthenticationFilter：解析 Token，写入 SecurityContext
+>           → Controller → Service → Mapper → MySQL
+>             → 返回统一 Result<T> { code, message, data }
+>               → 响应拦截器：code=200 返回 data；401 跳登录页
+>                 → Vue 组件渲染
+> ```
+>
+> **跨域（CORS）：** `SecurityConfig` 里配置 `CorsConfigurationSource`，允许所有 Origin 和请求头，开发阶段联调不受同源限制。
+>
+> **统一响应格式：**
+> ```json
+> { "code": 200, "message": "成功", "data": {...} }
+> { "code": 1001, "message": "订单不存在", "data": null }
+> { "code": 401, "message": "请先登录", "data": null }
+> ```
+
+---
+
+### Q12：JWT 的完整工作流程是什么？
+
+> **登录（生成 Token）：**
+> 用户提交手机号+密码 → `AuthController` BCrypt 比对密码 → 生成 JWT（Payload 含 `userId`、`role`、过期时间）→ 返回前端 → 前端存 localStorage
+>
+> **每次请求（验证 Token）：**
+> `JwtAuthenticationFilter`（`OncePerRequestFilter`）拦截每个请求：
+> 1. 取 `Authorization` 请求头，截去 `"Bearer "` 前缀
+> 2. `JwtUtil.isTokenValid()` 验签 + 过期检查
+> 3. 解析 Claims，取出 `userId`（subject）和 `role`
+> 4. 构造 `UsernamePasswordAuthenticationToken`，写入 `SecurityContextHolder`
+> 5. Controller 通过 `Authentication auth` 取到 `(Long)auth.getPrincipal()` 即 userId
+>
+> **JWT 三段结构：** `Header.Payload.Signature`，用服务器密钥 HMAC-SHA256 签名，任何人修改 Payload 后签名失效，后端拒绝。
+>
+> **有效期：** 配置在 `application.yml` 的 `jwt.expiration`，Token 过期后需重新登录。
+
+---
+
+### Q13：为什么禁用了 CSRF 保护？密码怎么存储的？
+
+> **CSRF 禁用原因：** `SecurityConfig` 里 `.csrf(AbstractHttpConfigurer::disable)`。CSRF 攻击利用的是浏览器自动携带 Cookie/Session，本项目用 JWT 放请求头（`Authorization`），浏览器不会自动携带，不存在 CSRF 攻击面，因此关闭。
+>
+> **密码存储：** BCrypt 算法（`PasswordEncoderFactories.createDelegatingPasswordEncoder()`）。BCrypt 特点：①单向不可逆；②每次加密结果不同（内置随机盐）；③数据库泄露也无法反推明文。数据库里存的是 `{bcrypt}$2a$10$...` 形式的哈希串。
+
+---
+
+### Q14：Spring Security 如何做角色权限控制？
+
+> `SecurityConfig.securityFilterChain()` 中配置：
+> ```java
+> .requestMatchers("/admin/**").hasRole("ADMIN")       // role=3
+> .requestMatchers("/cleaner/**").hasAnyRole("CLEANER","ADMIN")  // role=2
+> .requestMatchers("/customer/**").hasAnyRole("CUSTOMER","ADMIN") // role=1
+> ```
+> 角色信息从 JWT 的 `role` 字段解析，转成 Spring Security 的 `GrantedAuthority`（`ROLE_ADMIN` 等）。
+>
+> **白名单（无需登录）：** `/auth/login`、`/auth/register`、`/public/**`、`/files/**`、`/external/**`（外部平台用 API 密钥鉴权，不走 JWT）。
+>
+> **前端路由权限：** `router/index.js` 全局 `beforeEach` 守卫做体验层防护，后端 Spring Security 做安全层防护，两者缺一不可。
+
+---
+
+### Q15：MyBatis-Plus 起什么作用？分页怎么实现的？
+
+> **作用：** ORM 框架，内置 20+ 通用方法（`save`、`removeById`、`updateById`、`getById`、`list`、`page`、`lambdaQuery` 等），简单 CRUD 不用写 SQL，复杂查询用 `LambdaQueryWrapper` 链式构造，类型安全。
+>
+> **分页：** `MybatisPlusConfig` 注册 `PaginationInnerInterceptor`，拦截 SQL 自动追加 `LIMIT offset, size`，不用手写分页 SQL。统一用 `PageResult<T>` 包装返回（含 `total`、`current`、`size`、`records`）。
+>
+> **`created_at` / `updated_at` 自动填充：** `MyMetaObjectHandler` 实现 `MetaObjectHandler`，实体字段加 `@TableField(fill = FieldFill.INSERT)` 注解，insert 时自动填当前时间，update 时自动更新 `updated_at`，代码里不需要手动 `setCreatedAt(now)`。
+
+---
+
+### Q16：哪些地方用了事务？为什么通知失败不影响主流程？
+
+> **事务：** 所有核心业务方法都加了 `@Transactional(rollbackFor = Exception.class)`：下单、抢单、签到、完工上报、自动派单、手动派单、取消订单等。保证多表写入要么全部成功，要么全部回滚，不会产生"订单保存了但状态日志没写"的半完成状态。
+>
+> **通知失败不影响主流程：** `notify()` 私有方法内部用了 `try { ... } catch (Exception ignored) {}`，把通知写入失败的异常吞掉，不向外层事务传播，确保通知功能的辅助性质不会破坏核心业务事务。这是一种有意识的"容错降级"设计。
+
+---
+
+### Q17：数据库索引是怎么设计的？
+
+> **核心原则：查询频率高的字段建索引，写多读少的日志表少建索引，避免降低写入性能。**
+>
+> | 表 | 关键索引 | 解决什么查询 |
+> |---|---|---|
+> | `user` | `uk_phone` | 登录时按手机号查，唯一索引防重复注册 |
+> | `user` | `idx_role_status(role, status)` | 派单时批量查 `WHERE role=2 AND status=1` 的保洁员，复合索引覆盖 |
+> | `service_order` | `uk_order_no` | 按订单号全局唯一查 |
+> | `service_order` | `idx_customer_id` | 顾客查自己订单列表 |
+> | `service_order` | `idx_cleaner_id` | 保洁员查自己订单，派单时查其已有订单 |
+> | `service_order` | `idx_status` | 定时任务批量扫描某状态订单 |
+> | `service_order` | `idx_appoint_time` | 定时任务按预约时间扫超时订单 |
+> | `cleaner_time_lock` | `idx_cleaner_id_time(cleaner_id, lock_start, lock_end)` | 档期冲突检查：`WHERE cleaner_id=? AND lock_start < ? AND lock_end > ?`，三列复合覆盖整个查询 |
+> | `cleaner_income` | `idx_cleaner_settle(cleaner_id, settle_month)` | 保洁员按月查收入 |
+> | `notification` | `idx_user_read(user_id, is_read)` | 查未读消息：`WHERE user_id=? AND is_read=0` |
+> | `checkin_record` | `uk_order_id` | 一单只能签到一次，唯一索引防重复 |
+> | `order_review` | `uk_order_id` | 一单只能评价一次，唯一索引防重复 |
+
+---
+
+### Q18：并发抢单是怎么保证只有一人成功的？
+
+> 保洁员抢单时用 **MySQL 行级锁 + 条件更新**（乐观锁思路），代码在 `ServiceOrderServiceImpl.grabOrder()` 第178行：
+>
+> ```java
+> boolean grabbed = this.lambdaUpdate()
+>     .eq(ServiceOrder::getId, orderId)
+>     .eq(ServiceOrder::getStatus, OrderStatus.PENDING_DISPATCH.getCode())  // 条件：必须还是待派单
+>     .set(ServiceOrder::getCleanerId, cleanerId)
+>     .set(ServiceOrder::getStatus, OrderStatus.ACCEPTED.getCode())
+>     .update();
+> if (!grabbed) throw new BusinessException("手慢了！该订单已被其他保洁员接单");
+> ```
+>
+> 多人同时抢单时，MySQL 对满足 `WHERE id=? AND status=1` 的行加排它锁，只有一条 UPDATE 能成功修改，其余返回影响行数 0，后端抛出"手慢了"。整个方法加了 `@Transactional`，校验 + 写入是原子操作。
+
+---
+
+### Q19：定时任务有哪些，分别做什么？
+
+> 系统有多个 `@Scheduled` 定时任务（在 `ScheduledTaskService` 类中）：
+>
+> | 任务 | 触发条件 | 逻辑 |
+> |------|---------|------|
+> | 派单超时回退 | 定期扫描 | 查 `dispatch_record.status=1 AND expire_at < now`，标记为超时，订单退回 status=1 |
+> | 签到超时自动取消 | 定期扫描 | 查 `status=3 AND appoint_time < now-2h`，自动取消并通知管理员 |
+> | 过期未接单自动取消 | 定期扫描 | 查 `status IN(1,2) AND appoint_time < now`，自动取消退款 |
+> | 48h 自动确认 | 定期扫描 | 查 `status=5 AND auto_confirm_at < now`，自动完成并结算保洁员收入 |
+> | 出行提醒推送 | 每10分钟 | 查预约时间在 [now+50min, now+70min] 的 status=3 订单，推送提醒给保洁员 |
+
+---
+
+### Q20：系统的创新点或亮点是什么？
+
+> **1. 智能三维评分派单算法：** 距离（50%）+ 历史评分（30%）+ 均衡负载（20%）加权模型，结合时间可行性惩罚系数，比单一按距离派单更智能、更公平。
+>
+> **2. 档期三合一校验机制：** 周模板 + 特殊调整（override）+ 时段锁三层结构，优先级明确，既支持灵活的个人档期配置，又精确防止时间冲突。
+>
+> **3. 签到位置异常不阻断设计：** GPS 偏差超阈值时不直接拒绝签到，而是放行 + 异步通知管理员审查，避免 GPS 误差导致保洁员无法正常打卡，保留人工核查能力。
+>
+> **4. 多源订单统一管理：** `source` 字段区分平台自有/外部导入/手动录入，三种来源走统一订单流程，外部导入时自动创建顾客账号并异步触发派单。
+>
+> **5. 全参数可配置化：** 所有关键业务参数（派单半径、通勤缓冲、佣金比例、自动确认时间等）存 `system_config` 表，管理员后台实时修改无需重启。
+>
+> **6. 抢单并发乐观锁：** MySQL 行级锁保证多人抢单原子性，只有一人成功，其余得到明确拒绝。
+>
+> **7. 完整的订单状态追溯：** 每次状态变更写 `order_status_log`，记录操作人、前后状态、时间，出问题可完整追溯，类似快递物流轨迹。
+
+---
+
+### Q21：地址快照是什么设计，解决了什么问题？
+
+> 顾客下单时，系统将当时的完整地址（省市区详址、联系人、联系电话）序列化成字符串存入 `service_order.address_snapshot`。即使顾客事后修改或删除地址，历史订单中的地址不变，保洁员不会跑错地方，历史查询也不会出现"地址不存在"的错误。这是**数据去规范化**的经典应用场景：用冗余存储换取历史数据稳定性。
+
+---
+
+### Q22：外部平台对接接口（`/external/**`）为什么不走 JWT？
+
+> 外部平台是机器对机器（M2M）的调用，没有用户概念，无法登录获取 JWT。系统为此设计了独立的 API 密钥鉴权：`ExternalOrderController` 校验请求头 `X-Platform-Key` 是否等于约定的平台密钥（`jd2home_mock_key`），这是常见的第三方接口鉴权模式（类似短信平台的 AppKey）。`/external/**` 路径在 `SecurityConfig` 白名单中，绕过 Spring Security 的 JWT 过滤，但有独立的密钥校验，安全性由密钥保障。
+
+---
+
+*本文档基于 CleanMate 项目当前完整代码实现分析，最后更新：2026-05-25*

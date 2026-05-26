@@ -35,7 +35,7 @@ export function confirmComplete(orderId) {
   return request.put(`/customer/orders/${orderId}/confirm`)
 }
 
-// 顾客报告保洁员未到场（新路径，旧路径 no-show 已兼容）
+// 顾客报告保洁员未到场
 export function reportNoShow(orderId) {
   return request.put(`/customer/orders/${orderId}/report-absence`)
 }

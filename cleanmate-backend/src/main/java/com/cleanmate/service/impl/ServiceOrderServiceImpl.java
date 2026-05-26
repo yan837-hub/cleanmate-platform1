@@ -175,6 +175,16 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
         if (!order.getStatus().equals(OrderStatus.PENDING_DISPATCH.getCode()))
             throw new BusinessException("手慢了！该订单已被其他保洁员接单");
 
+        // 乐观锁：原子更新 status=1→3，并发抢单时只有一人成功
+        boolean grabbed = this.lambdaUpdate()
+                .eq(ServiceOrder::getId, orderId)
+                .eq(ServiceOrder::getStatus, OrderStatus.PENDING_DISPATCH.getCode())
+                .set(ServiceOrder::getCleanerId, cleanerId)
+                .set(ServiceOrder::getStatus, OrderStatus.ACCEPTED.getCode())
+                .update();
+        if (!grabbed) throw new BusinessException("手慢了！该订单已被其他保洁员接单");
+        order = this.getById(orderId);
+
         // 校验账号状态
         User cleanerUser = userService.getById(cleanerId);
         if (cleanerUser == null || cleanerUser.getStatus() != 1)
@@ -199,11 +209,6 @@ public class ServiceOrderServiceImpl extends ServiceImpl<ServiceOrderMapper, Ser
                     + " ~ " + order.getAppointTime().plusMinutes(planMin).toLocalTime().toString().substring(0, 5);
             throw new BusinessException("该订单服务时段为 " + need + "，与您的工作档期不符，可前往档期管理调整后再抢单");
         }
-
-        // 更新订单
-        order.setCleanerId(cleanerId);
-        order.setStatus(OrderStatus.ACCEPTED.getCode());
-        this.updateById(order);
 
         // 写派单记录
         DispatchRecord dispatch = new DispatchRecord();

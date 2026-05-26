@@ -106,7 +106,7 @@ public class CustomerOrderController {
             throw new BusinessException(ErrorCode.ORDER_NOT_BELONG_TO_USER);
         }
         // 待派单(1)、待确认(2)：随时可取消
-        // 已接单(3)：距预约时间须大于2小时
+        // 已接单(3)：读取参数否则默认2h
         // 服务中及之后：不可取消
         int status = order.getStatus();
         if (!java.util.Arrays.asList(1, 2, 3).contains(status)) {

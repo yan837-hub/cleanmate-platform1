@@ -13,7 +13,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ─────────────────────────────────────────────
 -- 0. 日期变量
 -- ─────────────────────────────────────────────
-SET @today     = '2026-05-21';   -- 答辩日期固定，重复执行结果不漂移
+SET @today     = '2026-05-26';   -- 答辩日期固定，重复执行结果不漂移
 SET @yesterday = DATE_SUB(@today, INTERVAL 1 DAY);
 SET @tomorrow  = DATE_ADD(@today, INTERVAL 1 DAY);
 SET @day2      = DATE_ADD(@today, INTERVAL 2 DAY);
@@ -25,22 +25,29 @@ SET @day7ago   = DATE_SUB(@today, INTERVAL 7 DAY);
 -- ─────────────────────────────────────────────
 -- 1. 清理旧演示数据（按外键依赖顺序）
 -- ─────────────────────────────────────────────
-DELETE FROM cleaner_income   WHERE order_id  BETWEEN 2001 AND 2020;
-DELETE FROM payment_record   WHERE order_id  BETWEEN 2001 AND 2020;
-DELETE FROM fee_detail       WHERE order_id  BETWEEN 2001 AND 2020;
-DELETE FROM service_photo    WHERE order_id  BETWEEN 2001 AND 2020;
-DELETE FROM order_status_log WHERE order_id  BETWEEN 2001 AND 2020;
-DELETE FROM order_reschedule WHERE order_id  BETWEEN 2001 AND 2020;
-DELETE FROM complaint        WHERE order_id  BETWEEN 2001 AND 2020;
-DELETE FROM order_review     WHERE order_id  BETWEEN 2001 AND 2020;
-DELETE FROM checkin_record   WHERE order_id  BETWEEN 2001 AND 2020;
-DELETE FROM dispatch_record  WHERE order_id  BETWEEN 2001 AND 2020;
-DELETE FROM cleaner_time_lock WHERE order_id BETWEEN 2001 AND 2020;
-DELETE FROM notification     WHERE ref_id    BETWEEN 2001 AND 2020;
-DELETE FROM service_order    WHERE id        BETWEEN 2001 AND 2020;
-DELETE FROM customer_address WHERE user_id   BETWEEN 1001 AND 1004;
-DELETE FROM cleaner_profile  WHERE user_id   BETWEEN 1005 AND 2002;
-DELETE FROM user             WHERE id        BETWEEN 1001 AND 2002;
+DELETE FROM cleaner_income    WHERE order_id  >= 2001;
+DELETE FROM payment_record    WHERE order_id  >= 2001;
+DELETE FROM fee_detail        WHERE order_id  >= 2001;
+DELETE FROM service_photo     WHERE order_id  >= 2001;
+DELETE FROM order_status_log  WHERE order_id  >= 2001;
+DELETE FROM order_reschedule  WHERE order_id  >= 2001;
+DELETE FROM complaint         WHERE order_id  >= 2001;
+DELETE FROM order_review      WHERE order_id  >= 2001;
+DELETE FROM checkin_record    WHERE order_id  >= 2001;
+DELETE FROM dispatch_record   WHERE order_id  >= 2001;
+DELETE FROM cleaner_time_lock WHERE order_id  >= 2001;
+DELETE FROM notification      WHERE ref_id    >= 2001 OR ref_id IS NULL;
+DELETE FROM service_order     WHERE id        >= 2001;
+-- 清理外部导入自动注册的临时用户（id > 2002，即演示预设账号之外）
+DELETE FROM user              WHERE id        >  2002;
+-- 重置自增，保证每次演示订单号从同一起点开始
+ALTER TABLE service_order AUTO_INCREMENT = 2001;
+ALTER TABLE user          AUTO_INCREMENT = 2003;
+DELETE FROM customer_address          WHERE user_id   BETWEEN 1001 AND 1004;
+DELETE FROM cleaner_schedule_override WHERE cleaner_id BETWEEN 1005 AND 2002;
+DELETE FROM cleaner_schedule_template WHERE cleaner_id BETWEEN 1005 AND 2002;
+DELETE FROM cleaner_profile           WHERE user_id   BETWEEN 1005 AND 2002;
+DELETE FROM user                      WHERE id        BETWEEN 1001 AND 2002;
 
 -- ─────────────────────────────────────────────
 -- 2. 用户账号（密码统一 123456）
@@ -141,6 +148,23 @@ VALUES
  '重庆市巴南区', 106.5320, 29.3880,
  '新手保洁员，认真负责，善于沟通',
  '普通保洁', 5.00, 0, 2, NULL, NULL);
+
+-- ─────────────────────────────────────────────
+-- 3.5 保洁员周档期模板（全周 08:00-20:00）
+--   缺少此数据 → isCleanerAvailable 返回 SCHEDULE_NOT_COVER → 候选人列表为空
+--   覆盖审核通过的5名保洁员（1005-1009），待审核2001/2002不参与派单无需配置
+-- ─────────────────────────────────────────────
+INSERT INTO `cleaner_schedule_template` (cleaner_id, day_of_week, start_time, end_time) VALUES
+(1005,1,'08:00:00','20:00:00'),(1005,2,'08:00:00','20:00:00'),(1005,3,'08:00:00','20:00:00'),
+(1005,4,'08:00:00','20:00:00'),(1005,5,'08:00:00','20:00:00'),(1005,6,'08:00:00','20:00:00'),(1005,7,'08:00:00','20:00:00'),
+(1006,1,'08:00:00','20:00:00'),(1006,2,'08:00:00','20:00:00'),(1006,3,'08:00:00','20:00:00'),
+(1006,4,'08:00:00','20:00:00'),(1006,5,'08:00:00','20:00:00'),(1006,6,'08:00:00','20:00:00'),(1006,7,'08:00:00','20:00:00'),
+(1007,1,'08:00:00','20:00:00'),(1007,2,'08:00:00','20:00:00'),(1007,3,'08:00:00','20:00:00'),
+(1007,4,'08:00:00','20:00:00'),(1007,5,'08:00:00','20:00:00'),(1007,6,'08:00:00','20:00:00'),(1007,7,'08:00:00','20:00:00'),
+(1008,1,'08:00:00','20:00:00'),(1008,2,'08:00:00','20:00:00'),(1008,3,'08:00:00','20:00:00'),
+(1008,4,'08:00:00','20:00:00'),(1008,5,'08:00:00','20:00:00'),(1008,6,'08:00:00','20:00:00'),(1008,7,'08:00:00','20:00:00'),
+(1009,1,'08:00:00','20:00:00'),(1009,2,'08:00:00','20:00:00'),(1009,3,'08:00:00','20:00:00'),
+(1009,4,'08:00:00','20:00:00'),(1009,5,'08:00:00','20:00:00'),(1009,6,'08:00:00','20:00:00'),(1009,7,'08:00:00','20:00:00');
 
 -- ─────────────────────────────────────────────
 -- 4. 顾客地址（均在重理工巴南校区附近）
@@ -331,6 +355,18 @@ VALUES
  80.0,120,TIMESTAMP(@tomorrow,'16:00:00'),
  1,120.00,24.00,1,NOW());
 
+-- 【2014】待派单-抢单演示（后天10:00，张建国无时段冲突，可成功抢单）
+INSERT INTO `service_order`
+  (id,order_no,source,customer_id,cleaner_id,service_type_id,
+   address_id,address_snapshot,longitude,latitude,
+   house_area,plan_duration,appoint_time,
+   status,estimate_fee,deposit_fee,pay_status,created_at)
+VALUES
+(2014,'CM20260521014',1,1004,NULL,1,
+ 1003,'重庆市巴南区花溪街道大江路156号2单元502',106.5120,29.3820,
+ 80.0,120,TIMESTAMP(@day2,'10:00:00'),
+ 1,120.00,24.00,1,DATE_SUB(NOW(),INTERVAL 3 MINUTE));
+
 -- 【2011-2013】辅助订单：产生明天下午时段锁，用于兜底演示
 -- 2011: 李明  明天15:00  → lock 14:30-17:30
 -- 2012: 王秀英 明天15:30 → lock 15:00-17:30
@@ -498,7 +534,9 @@ VALUES
 (2010,1, 24.00,99,2,DATE_SUB(NOW(),INTERVAL 5 MINUTE)),
 (2011,1, 24.00,99,2,DATE_SUB(NOW(),INTERVAL 55 MINUTE)),
 (2012,1, 32.00,99,2,DATE_SUB(NOW(),INTERVAL 50 MINUTE)),
-(2013,1, 24.00,99,2,DATE_SUB(NOW(),INTERVAL 45 MINUTE));
+(2013,1, 24.00,99,2,DATE_SUB(NOW(),INTERVAL 45 MINUTE)),
+-- 2014 抢单演示专用
+(2014,1, 24.00,99,2,DATE_SUB(NOW(),INTERVAL 3 MINUTE));
 
 -- ─────────────────────────────────────────────
 -- 17. 保洁员收入（order 2006 已完成）
@@ -556,7 +594,8 @@ VALUES
 (2012,2,  3,1007,'保洁员接单'),
 (2013,NULL,1,1003,'顾客下单'),
 (2013,1,  2,NULL,'系统自动派单→刘洋'),
-(2013,2,  3,1009,'保洁员接单');
+(2013,2,  3,1009,'保洁员接单'),
+(2014,NULL,1,1004,'顾客下单');
 
 -- ─────────────────────────────────────────────
 -- 19. 站内通知

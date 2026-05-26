@@ -11,7 +11,7 @@
  Target Server Version : 80037 (8.0.37)
  File Encoding         : 65001
 
- Date: 09/05/2026 01:14:41
+ Date: 23/05/2026 00:38:03
 */
 
 SET NAMES utf8mb4;
@@ -36,7 +36,7 @@ CREATE TABLE `checkin_record`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_order_id`(`order_id` ASC) USING BTREE,
   INDEX `idx_cleaner_id`(`cleaner_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 57 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '保洁员签到打卡记录' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 106 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '保洁员签到打卡记录' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for cleaner_income
@@ -55,7 +55,7 @@ CREATE TABLE `cleaner_income`  (
   UNIQUE INDEX `uk_order_id`(`order_id` ASC) USING BTREE,
   INDEX `idx_cleaner_settle`(`cleaner_id` ASC, `settle_month` ASC) USING BTREE,
   INDEX `idx_order_id`(`order_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 30 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '保洁员收入明细表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 42 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '保洁员收入明细表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for cleaner_profile
@@ -92,7 +92,7 @@ CREATE TABLE `cleaner_profile`  (
   CONSTRAINT `fk_cleaner_profile_audited_by` FOREIGN KEY (`audited_by`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_cleaner_profile_company` FOREIGN KEY (`company_id`) REFERENCES `cleaning_company` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `fk_cleaner_profile_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 2004 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '保洁员扩展信息表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2088 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '保洁员扩展信息表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for cleaner_schedule_override
@@ -125,7 +125,7 @@ CREATE TABLE `cleaner_schedule_template`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_cleaner_week`(`cleaner_id` ASC, `day_of_week` ASC) USING BTREE,
   INDEX `idx_cleaner_id`(`cleaner_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 360 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '保洁员每周固定档期模板' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 436 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '保洁员每周固定档期模板' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for cleaner_time_lock
@@ -142,7 +142,7 @@ CREATE TABLE `cleaner_time_lock`  (
   UNIQUE INDEX `uk_order_id`(`order_id` ASC) USING BTREE,
   INDEX `idx_cleaner_id_time`(`cleaner_id` ASC, `lock_start` ASC, `lock_end` ASC) USING BTREE,
   INDEX `idx_order_id`(`order_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 156 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '保洁员时段锁定表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 261 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '保洁员时段锁定表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for cleaning_company
@@ -190,7 +190,7 @@ CREATE TABLE `complaint`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_order_id`(`order_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 25 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '投诉与售后表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 37 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '投诉与售后表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for customer_address
@@ -235,7 +235,7 @@ CREATE TABLE `dispatch_record`  (
   INDEX `idx_order_id`(`order_id` ASC) USING BTREE,
   INDEX `idx_cleaner_id`(`cleaner_id` ASC) USING BTREE,
   INDEX `idx_status`(`status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 269 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '派单记录表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 396 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '派单记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for fee_detail
@@ -256,7 +256,7 @@ CREATE TABLE `fee_detail`  (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_order_id`(`order_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 38 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '订单费用明细表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 74 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '订单费用明细表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for notification
@@ -265,7 +265,7 @@ DROP TABLE IF EXISTS `notification`;
 CREATE TABLE `notification`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `user_id` bigint NOT NULL COMMENT '接收用户user_id',
-  `type` tinyint NOT NULL COMMENT '通知类型：1=下单成功 2=派单成功 3=保洁员上门 4=服务完成 5=新订单待接 6=审核结果 7=投诉通知 8=超时告警',
+  `type` tinyint NOT NULL COMMENT '通知类型：1=下单成功 2=派单成功 3=保洁员上门 4=服务完成 5=新订单待接 6=审核结果 7=投诉通知 8=超时告警 9=出行提醒 10=改期申请 11=改期结果 12=异常签到告警',
   `title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '通知标题',
   `content` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '通知内容',
   `ref_id` bigint NULL DEFAULT NULL COMMENT '关联业务ID（如订单ID）',
@@ -275,7 +275,7 @@ CREATE TABLE `notification`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_user_read`(`user_id` ASC, `is_read` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 830 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '站内消息通知表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1003 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '站内消息通知表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for operation_log
@@ -295,7 +295,7 @@ CREATE TABLE `operation_log`  (
   INDEX `idx_operator_id`(`operator_id` ASC) USING BTREE,
   INDEX `idx_module`(`module` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 154 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员操作日志表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 178 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员操作日志表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for order_reschedule
@@ -314,7 +314,7 @@ CREATE TABLE `order_reschedule`  (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_order_id`(`order_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '改期申请表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 20 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '改期申请表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for order_review
@@ -340,7 +340,7 @@ CREATE TABLE `order_review`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_order_id`(`order_id` ASC) USING BTREE,
   INDEX `idx_cleaner_id`(`cleaner_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 35 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '订单评价表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 49 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '订单评价表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for order_status_log
@@ -356,7 +356,7 @@ CREATE TABLE `order_status_log`  (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_order_id`(`order_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 888 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '订单状态流转日志' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1485 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '订单状态流转日志' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for payment_record
@@ -373,7 +373,7 @@ CREATE TABLE `payment_record`  (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_order_id`(`order_id` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 40 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '支付记录表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 205 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '支付记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for service_order
@@ -395,7 +395,7 @@ CREATE TABLE `service_order`  (
   `actual_duration` int NULL DEFAULT NULL COMMENT '实际服务时长（分钟），完工时填写',
   `appoint_time` datetime NOT NULL COMMENT '预约上门时间',
   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '顾客备注',
-  `status` tinyint NOT NULL DEFAULT 1 COMMENT '订单状态：1=待派单 2=已派单待确认 3=已接单 4=服务中 5=待确认完成 6=已完成 7=售后处理中 8=已取消',
+  `status` tinyint NOT NULL DEFAULT 1 COMMENT '订单状态：1=待派单 2=已派单待确认 3=已接单 4=服务中 5=待确认完成 6=已完成 7=售后处理中 8=已取消 9=改期审核中',
   `cancel_reason` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '取消原因',
   `estimate_fee` decimal(8, 2) NULL DEFAULT NULL COMMENT '预估费用',
   `actual_fee` decimal(8, 2) NULL DEFAULT NULL COMMENT '实际费用（完工确认后）',
@@ -413,7 +413,7 @@ CREATE TABLE `service_order`  (
   INDEX `idx_appoint_time`(`appoint_time` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE,
   CONSTRAINT `fk_order_customer` FOREIGN KEY (`customer_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 3026 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '服务订单表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 3038 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '服务订单表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for service_photo
@@ -431,7 +431,7 @@ CREATE TABLE `service_photo`  (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_order_id_phase`(`order_id` ASC, `phase` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '服务过程照片表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 39 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '服务过程照片表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for service_price_tier
@@ -482,7 +482,7 @@ CREATE TABLE `system_config`  (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_config_key`(`config_key` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 44 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '系统参数配置表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 146 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '系统参数配置表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for user
@@ -501,6 +501,6 @@ CREATE TABLE `user`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_phone`(`phone` ASC) USING BTREE,
   INDEX `idx_role_status`(`role` ASC, `status` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2004 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户账号表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2005 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户账号表' ROW_FORMAT = Dynamic;
 
 SET FOREIGN_KEY_CHECKS = 1;

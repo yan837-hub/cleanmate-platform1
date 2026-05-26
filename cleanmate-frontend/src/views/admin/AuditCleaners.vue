@@ -217,7 +217,6 @@ async function load() {
     const params = { current: currentPage.value, size: pageSize }
     if (filters.value.auditStatus != null) params.auditStatus = filters.value.auditStatus
     if (filters.value.keyword) params.keyword = filters.value.keyword
-    // 暂不把 companyId 传给后端（后端 keyword 目前只按姓名筛），前端做一次过滤展示即可
     const res = await getPendingCleaners(params)
     let records = res?.records ?? []
     // 若有公司筛选，前端过滤
